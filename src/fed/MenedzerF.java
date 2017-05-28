@@ -1,5 +1,7 @@
+package fed;
+
 /**
  * Created by konrad on 5/28/17.
  */
-public class KasaA {
+public class MenedzerF {
 }

@@ -1,21 +1,16 @@
-/**
+package fed; /**
  * Created by konrad on 5/28/17.
  */
 
+import amb.KlientA;
 import hla.rti.*;
 import hla.rti.jlc.RtiFactoryFactory;
-import org.portico.impl.hla13.types.DoubleTime;
-import org.portico.impl.hla13.types.DoubleTimeInterval;
 
 import java.io.File;
 import java.net.MalformedURLException;
 import java.util.Collections;
 
-public class KlientF {
-    public static final String READY_TO_RUN = "ReadyToRun";
-    private RTIambassador rtiamb;
-    private final double timeStep = 10.0;
-    private KlientA fedamb;
+public class KlientF extends Federat {
     private int klientHandle;
 
     public static void main(String[] args) {
@@ -26,17 +21,7 @@ public class KlientF {
         }
     }
 
-    private void log(String message) {
-        System.out.println("KlientFederate   : " + message);
-    }
 
-    private LogicalTimeInterval convertInterval(double time) {
-        return new DoubleTimeInterval(time);
-    }
-
-    private LogicalTime convertTime(double time) {
-        return new DoubleTime(time);
-    }
 
     private void runFederate() {
 
@@ -137,26 +122,15 @@ public class KlientF {
                 fedamb.federateTime = timeToAdvance;
             }
 
-            rtiamb.tick();
+            try {
+                rtiamb.tick();
+            } catch (RTIinternalError | ConcurrentAccessAttempted rtIinternalError) {
+                rtIinternalError.printStackTrace();
+            }
         }
     }
 
-    private void enableTimePolicy() throws RTIexception {
-        LogicalTime currentTime = convertTime(fedamb.federateTime);
-        LogicalTimeInterval lookahead = convertInterval(fedamb.federateLookahead);
 
-        this.rtiamb.enableTimeRegulation(currentTime, lookahead);
-
-        while (fedamb.isRegulating == false) {
-            rtiamb.tick();
-        }
-
-        this.rtiamb.enableTimeConstrained();
-
-        while (fedamb.isConstrained == false) {
-            rtiamb.tick();
-        }
-    }
 
     private void publishAndSubscribe() throws RTIexception {
 
@@ -177,15 +151,5 @@ public class KlientF {
     private void registerKlientObject() throws RTIexception {
         int classHandle = rtiamb.getObjectClassHandle("ObjectRoot.Klient");
         this.klientHandle = rtiamb.registerObjectInstance(classHandle);
-    }
-
-    private void advanceTime(double timeToAdvance) throws RTIexception {
-        fedamb.isAdvancing = true;
-        LogicalTime newTime = convertTime(timeToAdvance);
-        rtiamb.timeAdvanceRequest(newTime);
-
-        while (fedamb.isAdvancing) {
-            rtiamb.tick();
-        }
     }
 }
