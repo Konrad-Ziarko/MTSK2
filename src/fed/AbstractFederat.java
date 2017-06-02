@@ -5,7 +5,6 @@ import fom.FomInteraction;
 import fom.FomObject;
 import hla.rti.*;
 import hla.rti.jlc.RtiFactoryFactory;
-import javafx.util.Pair;
 import org.portico.impl.hla13.types.DoubleTime;
 import org.portico.impl.hla13.types.DoubleTimeInterval;
 
@@ -118,8 +117,7 @@ public abstract class AbstractFederat {
         }
         try {
             File fom = new File(FOM_PATH);
-            rtiamb.createFederationExecution("ExampleFederation",
-                    fom.toURI().toURL());
+            rtiamb.createFederationExecution(federationName, fom.toURI().toURL());
             log("Created Federation");
         } catch (FederationExecutionAlreadyExists exists) {
             log("Didn't create federation, it already existed");
