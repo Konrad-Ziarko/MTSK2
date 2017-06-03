@@ -1,6 +1,7 @@
 package fed;
 
 import amb.Ambasador;
+import fom.FomInteraction;
 import hla.rti.*;
 import hla.rti.jlc.RtiFactoryFactory;
 
@@ -30,7 +31,7 @@ public class FederatKasa extends AbstractFederat {
             double timeToAdvance = fedamb.federateTime + timeStep;
             advanceTime(timeToAdvance);
 
-            if (fedamb.externalEvents.size() > 0) {
+            /*if (fedamb.externalEvents.size() > 0) {
                 Collections.sort(fedamb.externalEvents, new ExternalEvent.ExternalEventComparator());
                 for (ExternalEvent externalEvent : fedamb.externalEvents) {
                     fedamb.federateTime = externalEvent.getTime();
@@ -53,7 +54,7 @@ public class FederatKasa extends AbstractFederat {
                 rtiamb.tick();
             } catch (RTIinternalError | ConcurrentAccessAttempted rtIinternalError) {
                 rtIinternalError.printStackTrace();
-            }
+            }*/
         }
     }
 
@@ -72,21 +73,37 @@ public class FederatKasa extends AbstractFederat {
             rtiamb.publishObjectClass(classHandle, attributes);
 
             int addClientServicedHandle = rtiamb.getInteractionClassHandle("InteractionRoot.obsluzonoKlienta");
+            FomInteraction interaction = new FomInteraction(addClientServicedHandle);
+            interaction.addAttributeHandle(NR_KASY, addClientServicedHandle, Integer.class);
+            interaction.addAttributeHandle(NR_KLIENTA, addClientServicedHandle, Integer.class);
             rtiamb.publishInteractionClass(addClientServicedHandle);
 
             int addCashEntryHandle = rtiamb.getInteractionClassHandle("InteractionRoot.wejscieDoKasy");
+            interaction = new FomInteraction(addCashEntryHandle);
+            interaction.addAttributeHandle(NR_KASY, addCashEntryHandle, Integer.class);
+            interaction.addAttributeHandle(NR_KLIENTA, addCashEntryHandle, Integer.class);
             rtiamb.publishInteractionClass(addCashEntryHandle);
 
             int addQueueExitHandle = rtiamb.getInteractionClassHandle("InteractionRoot.opuszczenieKolejki");
+            interaction = new FomInteraction(addQueueExitHandle);
+            interaction.addAttributeHandle(NR_KASY, addQueueExitHandle, Integer.class);
+            interaction.addAttributeHandle(NR_KLIENTA, addQueueExitHandle, Integer.class);
             rtiamb.subscribeInteractionClass(addQueueExitHandle);
 
             int addQueueEntryHandle = rtiamb.getInteractionClassHandle("InteractionRoot.wejscieDoKolejki");
+            interaction = new FomInteraction(addQueueEntryHandle);
+            interaction.addAttributeHandle(NR_KASY, addQueueEntryHandle, Integer.class);
+            interaction.addAttributeHandle(NR_KLIENTA, addQueueEntryHandle, Integer.class);
             rtiamb.subscribeInteractionClass(addQueueEntryHandle);
 
             int addNewCashHandle = rtiamb.getInteractionClassHandle("InteractionRoot.otworzKase");
+            interaction = new FomInteraction(addNewCashHandle);
+            interaction.addAttributeHandle(NR_KASY, addNewCashHandle, Integer.class);
             rtiamb.subscribeInteractionClass(addNewCashHandle);
 
             int addCloseCashHandle = rtiamb.getInteractionClassHandle("InteractionRoot.zamknijKase");
+            interaction = new FomInteraction(addCloseCashHandle);
+            interaction.addAttributeHandle(NR_KASY, addCloseCashHandle, Integer.class);
             rtiamb.subscribeInteractionClass(addCloseCashHandle);
 
             int addSimulationStartHandle = rtiamb.getInteractionClassHandle("InteractionRoot.startSymulacji");
@@ -102,6 +119,10 @@ public class FederatKasa extends AbstractFederat {
     @Override
     public void waitForSyncPoint() {
 
+    }
+    public void deleteObjects() {
+    }
+    public void registerObjects() {
     }
 
     /*@Override
