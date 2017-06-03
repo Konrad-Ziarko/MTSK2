@@ -8,6 +8,7 @@ import org.portico.impl.hla13.types.DoubleTimeInterval;
 
 import java.io.File;
 import java.net.MalformedURLException;
+import java.util.Map;
 
 /**
  * Created by konrad on 5/28/17.
@@ -21,11 +22,13 @@ public abstract class AbstractFederat {
     protected static final String CZY_UPRZYWILEJOWANY = "czyUprzywilejowany";
     protected static final String RODZAJ_ZALATWIANEJ_SPRAWY = "rodzajZalatwianejSprawy";
     protected static final String NR_OBSLUGIWANEGO_KLIENTA = "nrObslugiwanegoKlienta";
+    protected static final String DLUGOSC_KOLEJKI = "dlugoscKolejki";
 
     protected static final String SREDNI_CZAS_OBSLUGI = "sredniCzasObslugi";
     protected static final String SREDNIA_DLUGOSC_KOLEJKI = "sredniaDlugoscKolejki";
     protected static final String SREDNI_CZAS_OCZEKIWANIA = "sredniCzasOczekiwania";
 
+    protected static final String UPRZYWILEJOWANY = "czyUprzywilejowany";
 
     //
     public static final String FOM_PATH = "/bank.xml";
@@ -35,7 +38,7 @@ public abstract class AbstractFederat {
     public RTIambassador rtiamb;
     public final double timeStep = 10.0;
     public Ambasador fedamb;
-
+    protected Map<Integer, Integer> objectToClassHandleMap;
     //
     protected abstract void runFederate();
 
