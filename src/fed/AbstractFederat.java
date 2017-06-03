@@ -1,6 +1,9 @@
 package fed;
 
 import amb.Ambasador;
+import fom.FomInteraction;
+import fom.FomObject;
+import fom.Pair;
 import hla.rti.*;
 import hla.rti.jlc.RtiFactoryFactory;
 import org.portico.impl.hla13.types.DoubleTime;
@@ -8,7 +11,9 @@ import org.portico.impl.hla13.types.DoubleTimeInterval;
 
 import java.io.File;
 import java.net.MalformedURLException;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * Created by konrad on 5/28/17.
@@ -31,7 +36,7 @@ public abstract class AbstractFederat {
     protected static final String UPRZYWILEJOWANY = "czyUprzywilejowany";
 
     //
-    public static final String FOM_PATH = "/home/konrad/Desktop/MTSK2/src/fed/bank.xml";
+    public static final String FOM_PATH = "src/fed/bank.xml";
     public static final String federationName = "BankFederation";
     public static final String READY_TO_RUN = "ReadyToRun";
     //
@@ -200,4 +205,39 @@ public abstract class AbstractFederat {
         return ("" + System.currentTimeMillis()).getBytes();
     }
 
+    public FomObject prepareFomObject(int classHandle,
+                                      @SuppressWarnings("unchecked") Pair<String, Class<?>>... attributeNamesAndEncodingFunctions) {
+        FomObject object = new FomObject(classHandle);
+        iterateArrayWhileDoing(attributeNamesAndEncodingFunctions, pair -> {
+            try {
+                object.addAttributeHandle(pair.getA(),
+                        rtiamb.getAttributeHandle(pair.getA(), classHandle),
+                        pair.getB());
+            } catch (Exception e) {
+                log(e.getMessage());
+            }
+        });
+        return object;
+    }
+
+    public FomInteraction prepareFomInteraction(int classHandle,
+                                                @SuppressWarnings("unchecked") Pair<String, Class<?>>... parameterNamesAndEncodingFunctions) {
+        FomInteraction interaction = new FomInteraction(classHandle);
+        iterateArrayWhileDoing(parameterNamesAndEncodingFunctions, pair -> {
+            try {
+                interaction.addAttributeHandle(pair.getA(),
+                        rtiamb.getParameterHandle(pair.getA(), classHandle),
+                        pair.getB());
+            } catch (Exception e) {
+                log(e.getMessage());
+            }
+        });
+        return interaction;
+    }
+
+    private <T> void iterateArrayWhileDoing(T[] array, Consumer<? super T> action) {
+        Arrays.stream(array).forEach(pair -> {
+            action.accept(pair);
+        });
+    }
 }

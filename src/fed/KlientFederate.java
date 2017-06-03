@@ -6,6 +6,7 @@ package fed;
 import amb.Ambasador;
 import fom.FomInteraction;
 import fom.FomObject;
+import fom.Pair;
 import hla.rti.*;
 import hla.rti.jlc.EncodingHelpers;
 import hla.rti.jlc.RtiFactoryFactory;
@@ -13,7 +14,7 @@ import shared.Klient;
 
 import java.util.*;
 
-public class FederatKlient extends AbstractFederat {
+public class KlientFederate extends AbstractFederat {
     private static final String federateName = "KlientFederate";
     private static final String HLA_KLIENT = "HLAobjectRoot.Klient";
     private static final String HLA_WEJSCIE_KLIENT = "HLAinteractionRoot.wejscieDoKolejki";
@@ -33,7 +34,7 @@ public class FederatKlient extends AbstractFederat {
     private int MIN_SHOPPING_TIME = 5;
 
     public static void main(String[] args) {
-        new FederatKlient().runFederate();
+        new KlientFederate().runFederate();
     }
 
     public void runFederate() {
@@ -106,7 +107,7 @@ public class FederatKlient extends AbstractFederat {
         });
     }
 
-    private void sendQueueEnteredInteraction(Integer customerObjectId, Integer checkoutObjectId, boolean priviledged) {
+    private void sendQueueEnteredInteraction(Integer customerObjectId, Integer checkoutObjectId, boolean privileged) {
         SuppliedParameters parameters;
         try {
             parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
@@ -115,7 +116,7 @@ public class FederatKlient extends AbstractFederat {
             parameters.add(wejscieDoKolejkiHandle.getHandleFor(NR_KASY),
                     EncodingHelpers.encodeInt(checkoutObjectId));
             parameters.add(wejscieDoKolejkiHandle.getHandleFor(UPRZYWILEJOWANY),
-                    EncodingHelpers.encodeBoolean(priviledged));
+                    EncodingHelpers.encodeBoolean(privileged));
             rtiamb.sendInteraction(wejscieDoKolejkiHandle.getClassHandle(), parameters, generateTag());
         } catch (RTIexception e) {
             log("Couldn't send queue entered interaction, because: " + e.getMessage());
@@ -152,21 +153,29 @@ public class FederatKlient extends AbstractFederat {
 
     public void publishAndSubscribe() {
         try {
-            int addClientHandle = rtiamb.getObjectClassHandle(HLA_KLIENT);
+            int addQueueEntryHandle = rtiamb.getInteractionClassHandle(HLA_WEJSCIE_KLIENT);
+            wejscieDoKolejkiHandle = new FomInteraction(addQueueEntryHandle);
+            wejscieDoKolejkiHandle.addAttributeHandle(NR_KASY, addQueueEntryHandle, Integer.class);
+            wejscieDoKolejkiHandle.addAttributeHandle(NR_KLIENTA, addQueueEntryHandle, Integer.class);
+            rtiamb.publishInteractionClass(wejscieDoKolejkiHandle.getClassHandle());
+
+            /*int addClientHandle = rtiamb.getObjectClassHandle(HLA_KLIENT);
             klientHandle = new FomObject(addClientHandle);
             klientHandle.addAttributeHandle(NR_KASY, addClientHandle, Integer.class);
             klientHandle.addAttributeHandle(NR_KLIENTA, addClientHandle, Integer.class);
             klientHandle.addAttributeHandle(POZYCJA_KOLEJKI, addClientHandle, Integer.class);
             klientHandle.addAttributeHandle(CZY_UPRZYWILEJOWANY, addClientHandle, Boolean.class);
             klientHandle.addAttributeHandle(RODZAJ_ZALATWIANEJ_SPRAWY, addClientHandle, Integer.class);
+            rtiamb.publishObjectClass(klientHandle.getClassHandle(), klientHandle.createAttributeHandleSet());*/
 
-            rtiamb.publishObjectClass(klientHandle.getClassHandle(), klientHandle.createAttributeHandleSet());
-
-            int addQueueEntryHandle = rtiamb.getInteractionClassHandle(HLA_WEJSCIE_KLIENT);
-            wejscieDoKolejkiHandle = new FomInteraction(addQueueEntryHandle);
-            wejscieDoKolejkiHandle.addAttributeHandle(NR_KASY, addQueueEntryHandle, Integer.class);
-            wejscieDoKolejkiHandle.addAttributeHandle(NR_KLIENTA, addQueueEntryHandle, Integer.class);
-            rtiamb.publishInteractionClass(wejscieDoKolejkiHandle.getClassHandle());
+            klientHandle = prepareFomObject(rtiamb.getObjectClassHandle(HLA_KLIENT),
+                    new Pair<String, Class<?>>(NR_KASY, Integer.class),
+                    new Pair<String, Class<?>>(NR_KLIENTA, Integer.class),
+                    new Pair<String, Class<?>>(CZY_UPRZYWILEJOWANY, Boolean.class),
+                    new Pair<String, Class<?>>(POZYCJA_KOLEJKI, Integer.class),
+                    new Pair<String, Class<?>>(RODZAJ_ZALATWIANEJ_SPRAWY, Integer.class));
+            rtiamb.publishObjectClass(klientHandle.getClassHandle(),
+                    klientHandle.createAttributeHandleSet());
 
             /*int addQueueExitHandle = rtiamb.getInteractionClassHandle("HLAinteractionRoot.opuszczenieKolejki");
             interaction = new FomInteraction(addQueueExitHandle);
@@ -217,11 +226,12 @@ public class FederatKlient extends AbstractFederat {
         });
     }*/
     public void registerObjects() {
+        createAndRegisterCustomer(0);
     }
     /*public void registerObjects() {
         int classHandle = 0;
         try {
-            classHandle = rtiamb.getObjectClassHandle("ObjectRoot.Klient");
+            classHandle = rtiamb.getObjectClassHandle("HLAobjectRoot.Klient");
             this.klientHandle = rtiamb.registerObjectInstance(classHandle);
         } catch (NameNotFound | FederateNotExecutionMember | SaveInProgress | RTIinternalError | ObjectClassNotDefined | ConcurrentAccessAttempted | ObjectClassNotPublished | RestoreInProgress nameNotFound) {
             nameNotFound.printStackTrace();
