@@ -1,8 +1,6 @@
 package fed;
 
 import amb.Ambasador;
-import fom.FomInteraction;
-import fom.FomObject;
 import hla.rti.*;
 import hla.rti.jlc.RtiFactoryFactory;
 import org.portico.impl.hla13.types.DoubleTime;
@@ -45,7 +43,7 @@ public abstract class AbstractFederat {
 
     protected abstract void waitForSyncPoint();
 
-    //protected abstract void registerObjects();
+    protected abstract void registerObjects();
 
     protected abstract void deleteObjects();
     //
@@ -89,7 +87,7 @@ public abstract class AbstractFederat {
 
     protected void advanceTime(double timeToAdvance) {
         fedamb.isAdvancing = true;
-        LogicalTime newTime = convertTime(timeToAdvance);
+        LogicalTime newTime = convertTime(fedamb.federateTime + timeToAdvance);
         try {
             rtiamb.timeAdvanceRequest(newTime);
             while (fedamb.isAdvancing) {
@@ -183,7 +181,7 @@ public abstract class AbstractFederat {
         attemptToDestroyFederation();
     }
 
-   /* protected void deleteObject(int handle) throws RTIexception {
+    protected void deleteObject(int handle) throws RTIexception {
         rtiamb.deleteObjectInstance(handle, generateTag());
     }
 
@@ -199,33 +197,4 @@ public abstract class AbstractFederat {
         return ("" + System.currentTimeMillis()).getBytes();
     }
 
-    /*public FomObject prepareFomObject(int classHandle, @SuppressWarnings("unchecked") Pair<String, Class<?>>... attributeNamesAndEncodingFunctions) {
-        FomObject object = new FomObject(classHandle);
-        iterateArrayWhileDoing(attributeNamesAndEncodingFunctions, pair -> {
-            try {
-                object.addAttributeHandle(pair.getA(), rtiamb.getAttributeHandle(pair.getA(), classHandle), pair.getB());
-            } catch (Exception e) {
-                logger.error(e.getMessage(), e);
-            }
-        });
-        return object;
-    }
-
-    public FomInteraction prepareFomInteraction(int classHandle, @SuppressWarnings("unchecked") Pair<String, Class<?>>... parameterNamesAndEncodingFunctions) {
-        FomInteraction interaction = new FomInteraction(classHandle);
-        iterateArrayWhileDoing(parameterNamesAndEncodingFunctions, pair -> {
-            try {
-                interaction.addAttributeHandle(pair.getA(), rtiamb.getParameterHandle(pair.getA(), classHandle), pair.getB());
-            } catch (Exception e) {
-                logger.error(e.getMessage(), e);
-            }
-        });
-        return interaction;
-    }
-
-    private <T> void iterateArrayWhileDoing(T[] array, Consumer<? super T> action) {
-        Arrays.stream(array).forEach(pair -> {
-            action.accept(pair);
-        });
-    }*/
 }
