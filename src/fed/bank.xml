@@ -1,2 +1,124 @@
 <?xml version="1.0" encoding="" ?>
+<objectModel DTDversion="1516.2" name="TEST-FOM" type="FOM"
+             version="1.0">
+    <objects>
+        <objectClass name="HLAobjectRoot" sharing="Neither">
+            <attribute name="HLAprivilegeToDeleteObject" dataType="NA"
+                       updateType="NA" updateCondition="NA" ownership="NoTransfer" sharing="Neither"
+                       dimensions="NA" transportation="HLAreliable" order="TimeStamp" />
+            <objectClass name="Klient" sharing="PublishSubscribe"
+                         semantics="NA">
+                <attribute name="nrKasy" dataType="HLAinteger32BE"
+                           updateType="Conditional" updateCondition="NA" ownership="NoTransfer"
+                           sharing="PublishSubscribe" dimensions="NA" transportation="HLAreliable"
+                           order="TimeStamp" semantics="NA" />
+                <attribute name="nrKlienta" dataType="HLAinteger32BE" updateType="Conditional"
+                           updateCondition="NA" ownership="NoTransfer" sharing="PublishSubscribe"
+                           dimensions="NA" transportation="HLAreliable" order="TimeStamp"
+                           semantics="NA" />
+                <attribute name="pozycjaKolejki" dataType="HLAinteger32BE"
+                           updateType="Conditional" updateCondition="NA" ownership="NoTransfer"
+                           sharing="PublishSubscribe" dimensions="NA" transportation="HLAreliable"
+                           order="TimeStamp" semantics="NA" />
+                <attribute name="czyUprzywilejowany" dataType="HLAboolean"
+                           updateType="Conditional" updateCondition="NA" ownership="NoTransfer"
+                           sharing="PublishSubscribe" dimensions="NA" transportation="HLAreliable"
+                           order="TimeStamp" semantics="NA" />
+                <attribute name="rodzajZalatwianejSprawy" dataType="HLAinteger32BE"
+                           updateType="Conditional" updateCondition="NA" ownership="NoTransfer"
+                           sharing="PublishSubscribe" dimensions="NA" transportation="HLAreliable"
+                           order="TimeStamp" semantics="NA" />
+            </objectClass>
+            <objectClass name="Kasa" sharing="PublishSubscribe"
+                         semantics="NA" order="TimeStamp">
+                <attribute name="nrKasy" dataType="HLAinteger32BE" updateType="Conditional"
+                           updateCondition="NA" ownership="NoTransfer" sharing="PublishSubscribe"
+                           dimensions="NA" transportation="HLAreliable" order="TimeStamp"
+                           semantics="NA" />
+                <attribute name="nrObslugiwanegoKlienta" dataType="HLAinteger32BE" updateType="Conditional"
+                           updateCondition="NA" ownership="NoTransfer" sharing="PublishSubscribe"
+                           dimensions="NA" transportation="HLAreliable" order="TimeStamp"
+                           semantics="NA" />
+            </objectClass>
+            <objectClass name="Statystyka" sharing="PublishSubscribe"
+                         semantics="NA">
+                <attribute name="sredniCzasObslugi" dataType="HLAfloat64BE"
+                           updateType="Conditional" updateCondition="NA" ownership="NoTransfer"
+                           sharing="PublishSubscribe" dimensions="NA" transportation="HLAreliable"
+                           order="TimeStamp" semantics="NA" />
+                <attribute name="sredniCzasOczekiwania" dataType="HLAfloat64BE"
+                           updateType="Conditional" updateCondition="NA" ownership="NoTransfer"
+                           sharing="PublishSubscribe" dimensions="NA" transportation="HLAreliable"
+                           order="TimeStamp" semantics="NA" />
+                <attribute name="sredniaDlugoscKolejki" dataType="HLAinteger32BE"
+                           updateType="Conditional" updateCondition="NA" ownership="NoTransfer"
+                           sharing="PublishSubscribe" dimensions="NA" transportation="HLAreliable"
+                           order="TimeStamp" semantics="NA" />
+            </objectClass>
+        </objectClass>
+    </objects>
+    <interactions>
+        <interactionClass name="HLAinteractionRoot" sharing="PublishSubscribe"
+                          dimensions="NA" transportation="HLAreliable" order="Receive">
+            <interactionClass name="otworzKase" sharing="PublishSubscribe"
+                              dimensions="NA" transportation="HLAreliable" order="Receive"
+                              semantics="NA">
+                <parameter name="nrKasy" dataType="HLAinteger32BE"
+                           semantics="NA" />
+            </interactionClass>
+            <interactionClass name="stopSymulacji" sharing="PublishSubscribe"
+                              dimensions="NA" transportation="HLAreliable" order="Receive"
+                              semantics="NA">
+            </interactionClass>
+            <interactionClass name="startSymulacji" sharing="PublishSubscribe"
+                              dimensions="NA" transportation="HLAreliable" order="Receive"
+                              semantics="NA">
+            </interactionClass>
+            <interactionClass name="nowyKlient" sharing="PublishSubscribe"
+                              dimensions="NA" transportation="HLAreliable" order="Receive"
+                              semantics="NA">
+                <parameter name="nrKlienta" dataType="HLAinteger32BE"
+                           semantics="NA" />
+            </interactionClass>
+            <interactionClass name="zamknijKase" sharing="PublishSubscribe"
+                              dimensions="NA" transportation="HLAreliable" order="Receive"
+                              semantics="NA">
+                <parameter name="nrKasy" dataType="HLAinteger32BE"
+                           semantics="NA" />
+            </interactionClass>
+            <interactionClass name="opuszczenieKolejki" sharing="PublishSubscribe"
+                              dimensions="NA" transportation="HLAreliable" order="Receive"
+                              semantics="NA">
+                <parameter name="nrKlienta" dataType="HLAinteger32BE"
+                           semantics="NA" />
+                <parameter name="nrKasy" dataType="HLAinteger32BE"
+                           semantics="NA" />
+            </interactionClass>
+            <interactionClass name="wejscieDoKolejki" sharing="PublishSubscribe"
+                              dimensions="NA" transportation="HLAreliable" order="Receive"
+                              semantics="NA">
+                <parameter name="nrKlienta" dataType="HLAinteger32BE"
+                           semantics="NA" />
+                <parameter name="nrKasy" dataType="HLAinteger32BE"
+                           semantics="NA" />
+            </interactionClass>
+            <interactionClass name="obsluzonoKlienta" sharing="PublishSubscribe"
+                              dimensions="NA" transportation="HLAreliable" order="Receive"
+                              semantics="NA">
+                <parameter name="nrKlienta" dataType="HLAinteger32BE"
+                           semantics="NA" />
+                <parameter name="nrKasy" dataType="HLAinteger32BE"
+                           semantics="NA" />
+            </interactionClass>
+            <interactionClass name="wejscieDoKasy" sharing="PublishSubscribe"
+                              dimensions="NA" transportation="HLAreliable" order="Receive"
+                              semantics="NA">
+                <parameter name="nrKlienta" dataType="HLAinteger32BE"
+                           semantics="NA" />
+                <parameter name="nrKasy" dataType="HLAinteger32BE"
+                           semantics="NA" />
+            </interactionClass>
+        </interactionClass>
+    </interactions>
+</objectModel>
 
