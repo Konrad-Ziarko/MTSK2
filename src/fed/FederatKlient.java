@@ -14,8 +14,8 @@ import shared.Klient;
 
 import java.util.*;
 
-public class KlientFederate extends AbstractFederat {
-    private static final String federateName = "KlientFederate";
+public class FederatKlient extends AbstractFederat {
+    private static final String federateName = "FederatKlient";
     private static final String HLA_KLIENT = "HLAobjectRoot.Klient";
     private static final String HLA_WEJSCIE_KLIENT = "HLAinteractionRoot.wejscieDoKolejki";
     private FomObject klientHandle;
@@ -24,7 +24,7 @@ public class KlientFederate extends AbstractFederat {
     private FomInteraction stopSymulacjiHandle;
 
     private Random rand = new Random();
-    private float generatingChance = .5f;
+    private float generatingChance = .99f;
 
     private List<Klient> allCustomers = new ArrayList<>();
     private Map<Integer, Integer> queuesSizes = new HashMap<>();
@@ -34,7 +34,7 @@ public class KlientFederate extends AbstractFederat {
     private int MIN_SHOPPING_TIME = 5;
 
     public static void main(String[] args) {
-        new KlientFederate().runFederate();
+        new FederatKlient().runFederate();
     }
 
     public void runFederate() {
@@ -49,7 +49,7 @@ public class KlientFederate extends AbstractFederat {
         registerObjects();
 
         while (fedamb.running) {
-            double timeToAdvance = fedamb.federateTime + timeStep;
+            //double timeToAdvance = fedamb.federateTime + timeStep;
             double federateTime = getFederateAmbassador().getFederateTime();
 
             if (rand.nextFloat() < generatingChance)
@@ -57,8 +57,8 @@ public class KlientFederate extends AbstractFederat {
             updateCustomersWithNewFederateTime(federateTime);
 
             //logika obslugi wszystkich klientow
+            advanceTime(timeStep);
 
-            advanceTime(timeToAdvance);
         }
     }
 
@@ -134,7 +134,7 @@ public class KlientFederate extends AbstractFederat {
         allCustomers.add(customer);
         try {
             int customerHandle = registerRtiCustomer(customer);
-            log("New customer " + customerHandle + " enters the market: " + customer);
+            log("New customer " + customerHandle + " enters the bank: " + customer);
         } catch (RTIexception e) {
             log("Couldn't create new customer, because: " + e.getMessage());
         }
@@ -215,28 +215,8 @@ public class KlientFederate extends AbstractFederat {
     public void deleteObjects() {
     }
 
-    /*protected void deleteObjects() throws RTIexception {
-        log("Deleting " + customersHandlesToObjects.size() + " created customer objects");
-        customersHandlesToObjects.keySet().stream().forEach(handle -> {
-            try {
-                rtiAmbassador.deleteObjectInstance(handle, generateTag());
-            } catch (Exception e) {
-                log("Couldn't delete " + handle + ", because: " + e.getMessage());
-            }
-        });
-    }*/
     public void registerObjects() {
-        createAndRegisterCustomer(0);
     }
-    /*public void registerObjects() {
-        int classHandle = 0;
-        try {
-            classHandle = rtiamb.getObjectClassHandle("HLAobjectRoot.Klient");
-            this.klientHandle = rtiamb.registerObjectInstance(classHandle);
-        } catch (NameNotFound | FederateNotExecutionMember | SaveInProgress | RTIinternalError | ObjectClassNotDefined | ConcurrentAccessAttempted | ObjectClassNotPublished | RestoreInProgress nameNotFound) {
-            nameNotFound.printStackTrace();
-        }
-    }*/
 
     public void waitForSyncPoint() {
     }
