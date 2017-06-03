@@ -5,11 +5,27 @@ package fed;
 
 import amb.Ambasador;
 import fom.FomInteraction;
+import fom.FomObject;
 import hla.rti.*;
+import shared.Klient;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 public class FederatKlient extends AbstractFederat {
-    private int klientHandle;
     private static final String federateName = "KlientFederate";
+    private FomObject klientHandle;
+    private FomObject kasaHandle;
+    private FomInteraction wejscieDoKolejkiHandle;
+
+    private Random customerGenerator = new Random();
+    private float generatingChance = .5f;
+
+    private List<Klient> allCustomers;
+    private Map<Integer, Integer> queuesSizes;
+    private Map<Integer, Klient> customersHandlesToObjects;
+    private Map<Klient, Integer> customersObjectsToHandles;
 
     public static void main(String[] args) {
         new FederatKlient().runFederate();
@@ -22,7 +38,6 @@ public class FederatKlient extends AbstractFederat {
         registerSyncPoint();
         waitForSyncPoint();
         achieveSyncPoint();
-        //timePolicy(); //może to miało być zrobione?
         enableTimePolicy();
         publishAndSubscribe();
         registerObjects();
@@ -38,14 +53,13 @@ public class FederatKlient extends AbstractFederat {
 
     public void publishAndSubscribe() {
         try {
-
             int addQueueEntryHandle = rtiamb.getInteractionClassHandle("InteractionRoot.wejscieDoKolejki");
-            FomInteraction interaction = new FomInteraction(addQueueEntryHandle);
-            interaction.addAttributeHandle(NR_KASY, addQueueEntryHandle, Integer.class);
-            interaction.addAttributeHandle(NR_KLIENTA, addQueueEntryHandle, Integer.class);
-            rtiamb.publishInteractionClass(addQueueEntryHandle);
+            wejscieDoKolejkiHandle = new FomInteraction(addQueueEntryHandle);
+            wejscieDoKolejkiHandle.addAttributeHandle(NR_KASY, addQueueEntryHandle, Integer.class);
+            wejscieDoKolejkiHandle.addAttributeHandle(NR_KLIENTA, addQueueEntryHandle, Integer.class);
+            rtiamb.publishInteractionClass(wejscieDoKolejkiHandle.getClassHandle());
 
-            int addQueueExitHandle = rtiamb.getInteractionClassHandle("InteractionRoot.opuszczenieKolejki");
+            /*int addQueueExitHandle = rtiamb.getInteractionClassHandle("InteractionRoot.opuszczenieKolejki");
             interaction = new FomInteraction(addQueueExitHandle);
             interaction.addAttributeHandle(NR_KASY, addQueueEntryHandle, Integer.class);
             interaction.addAttributeHandle(NR_KLIENTA, addQueueEntryHandle, Integer.class);
@@ -67,7 +81,7 @@ public class FederatKlient extends AbstractFederat {
             interaction.addAttributeHandle(NR_KASY, addQueueEntryHandle, Integer.class);
             interaction.addAttributeHandle(NR_KLIENTA, addQueueEntryHandle, Integer.class);
             rtiamb.subscribeInteractionClass(addCashEntryHandle);
-
+            */
             int addSimulationStartHandle = rtiamb.getInteractionClassHandle("InteractionRoot.startSymulacji");
             rtiamb.subscribeInteractionClass(addSimulationStartHandle);
 
