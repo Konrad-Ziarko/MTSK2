@@ -31,7 +31,7 @@ public abstract class AbstractFederat {
     protected static final String UPRZYWILEJOWANY = "czyUprzywilejowany";
 
     //
-    public static final String FOM_PATH = "/bank.xml";
+    public static final String FOM_PATH = "/home/konrad/Desktop/MTSK2/src/fed/bank.xml";
     public static final String federationName = "BankFederation";
     public static final String READY_TO_RUN = "ReadyToRun";
     //

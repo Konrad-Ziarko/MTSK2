@@ -169,4 +169,24 @@ public class Ambasador extends NullFederateAmbassador {
                                             EventRetractionHandle retractionHandle);
     }
 
+    @Override
+    public void timeRegulationEnabled(LogicalTime theFederateTime) {
+        this.federateTime = convertTime(theFederateTime);
+        this.isRegulating = true;
+    }
+
+    @Override
+    public void timeConstrainedEnabled(LogicalTime theFederateTime) {
+        this.federateTime = convertTime(theFederateTime);
+        this.isConstrained = true;
+    }
+
+    @Override
+    public void timeAdvanceGrant(LogicalTime theTime) {
+        this.federateTime = convertTime(theTime);
+        this.isAdvancing = false;
+    }
+
+
+
 }

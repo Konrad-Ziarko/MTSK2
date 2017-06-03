@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
-<objectModel DTDversion="1516.2" name="TEST-FOM" type="FOM"
+<objectModel DTDversion="1516.2" name="BankFederation" type="FOM"
              version="1.0">
     <objects>
-        <objectClass name="HLAobjectRoot" sharing="Neither">
+        <objectClass name="HLAobjectRoot" sharing="PublishSubscribe">
             <attribute name="HLAprivilegeToDeleteObject" dataType="NA"
-                       updateType="NA" updateCondition="NA" ownership="NoTransfer" sharing="Neither"
+                       updateType="NA" updateCondition="NA" ownership="NoTransfer" sharing="PublishSubscribe"
                        dimensions="NA" transportation="HLAreliable" order="TimeStamp" />
             <objectClass name="Klient" sharing="PublishSubscribe"
                          semantics="NA">
