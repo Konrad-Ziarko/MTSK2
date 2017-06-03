@@ -98,25 +98,24 @@ public class FederatKlient extends AbstractFederat {
             rtiamb.publishObjectClass(classHandle, attributes);
 
             int addQueueEntryHandle = rtiamb.getInteractionClassHandle("InteractionRoot.wejscieDoKolejki");
-            fedamb.addQueueEntryHandle = addQueueEntryHandle; //czy to ma rację bytu?
             rtiamb.publishInteractionClass(addQueueEntryHandle);
+            
             int addQueueExitHandle = rtiamb.getInteractionClassHandle("InteractionRoot.opuszczenieKolejki");
-            fedamb.addQueueExitHandle = addQueueExitHandle;
             rtiamb.publishInteractionClass(addQueueExitHandle);
+
             int addServicedHandle = rtiamb.getInteractionClassHandle("InteractionRoot.obsluzonoKlienta");
-            fedamb.addServicedHandle = addServicedHandle;
             rtiamb.subscribeInteractionClass(addServicedHandle);
+
             int addNewClientHandle = rtiamb.getInteractionClassHandle("InteractionRoot.nowyKlient");
-            fedamb.addNewClientHandle = addNewClientHandle;
             rtiamb.subscribeInteractionClass(addNewClientHandle);
+
             int addCashEntryHandle = rtiamb.getInteractionClassHandle("InteractionRoot.wejscieDoKasy");
-            fedamb.addCashEntryHandle = addCashEntryHandle;
             rtiamb.subscribeInteractionClass(addCashEntryHandle);
+
             int addSimulationStartHandle = rtiamb.getInteractionClassHandle("InteractionRoot.startSymulacji");
-            fedamb.addSimulationStartHandle = addSimulationStartHandle;
             rtiamb.subscribeInteractionClass(addSimulationStartHandle);
+
             int addSimulationStopHandle = rtiamb.getInteractionClassHandle("InteractionRoot.stopSymulacji");
-            fedamb.addSimulationStopHandle = addSimulationStopHandle;
             rtiamb.subscribeInteractionClass(addSimulationStopHandle);
         } catch (NameNotFound | FederateNotExecutionMember | RTIinternalError | AttributeNotDefined | OwnershipAcquisitionPending | InteractionClassNotDefined | SaveInProgress | ConcurrentAccessAttempted | RestoreInProgress | FederateLoggingServiceCalls | ObjectClassNotDefined nameNotFound) {
             nameNotFound.printStackTrace();
