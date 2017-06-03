@@ -65,7 +65,7 @@ public class FederatKlient extends AbstractFederat {
         checkoutsQueueSizes.put(objectHandle, EncodingHelpers.decodeInt(value));
     }
 
-    protected void deleteObjects() throws RTIexception {
+    /*protected void deleteObjects() throws RTIexception {
         log("Deleting " + customersHandlesToObjects.size() + " created customer objects");
         customersHandlesToObjects.keySet().stream().forEach(handle -> {
             try {
@@ -74,7 +74,7 @@ public class FederatKlient extends AbstractFederat {
                 log("Couldn't delete " + handle + ", because: " + e.getMessage());
             }
         });
-    }
+    }*/
 
     public String toString() {
         return "KlientFederate [bankCustomers[" + shoppingCustomers.size() + "], checkoutsQueueSizes["
@@ -89,23 +89,41 @@ public class FederatKlient extends AbstractFederat {
     public void publishAndSubscribe() {
         int classHandle = 0;
         try {
-            classHandle = rtiamb.getObjectClassHandle("ObjectRoot.Storage");
-            int stockHandle = rtiamb.getAttributeHandle("stock", classHandle);
+            classHandle = rtiamb.getObjectClassHandle("ObjectRoot.Klient");
+            int stockHandle = rtiamb.getAttributeHandle("nrKlienta", classHandle);
             AttributeHandleSet attributes =
                     RtiFactoryFactory.getRtiFactory().createAttributeHandleSet();
             attributes.add(stockHandle);
 
             rtiamb.publishObjectClass(classHandle, attributes);
 
-            int addProductHandle = rtiamb.getInteractionClassHandle("InteractionRoot.AddProduct");
-            fedamb.addProductHandle = addProductHandle;
-            rtiamb.subscribeInteractionClass(addProductHandle);
+            int addQueueEntryHandle = rtiamb.getInteractionClassHandle("InteractionRoot.wejscieDoKolejki");
+            fedamb.addQueueEntryHandle = addQueueEntryHandle; //czy to ma rację bytu?
+            rtiamb.publishInteractionClass(addQueueEntryHandle);
+            int addQueueExitHandle = rtiamb.getInteractionClassHandle("InteractionRoot.opuszczenieKolejki");
+            fedamb.addQueueExitHandle = addQueueExitHandle;
+            rtiamb.publishInteractionClass(addQueueExitHandle);
+            int addServicedHandle = rtiamb.getInteractionClassHandle("InteractionRoot.obsluzonoKlienta");
+            fedamb.addServicedHandle = addServicedHandle;
+            rtiamb.subscribeInteractionClass(addServicedHandle);
+            int addNewClientHandle = rtiamb.getInteractionClassHandle("InteractionRoot.nowyKlient");
+            fedamb.addNewClientHandle = addNewClientHandle;
+            rtiamb.subscribeInteractionClass(addNewClientHandle);
+            int addCashEntryHandle = rtiamb.getInteractionClassHandle("InteractionRoot.wejscieDoKasy");
+            fedamb.addCashEntryHandle = addCashEntryHandle;
+            rtiamb.subscribeInteractionClass(addCashEntryHandle);
+            int addSimulationStartHandle = rtiamb.getInteractionClassHandle("InteractionRoot.startSymulacji");
+            fedamb.addSimulationStartHandle = addSimulationStartHandle;
+            rtiamb.subscribeInteractionClass(addSimulationStartHandle);
+            int addSimulationStopHandle = rtiamb.getInteractionClassHandle("InteractionRoot.stopSymulacji");
+            fedamb.addSimulationStopHandle = addSimulationStopHandle;
+            rtiamb.subscribeInteractionClass(addSimulationStopHandle);
         } catch (NameNotFound | FederateNotExecutionMember | RTIinternalError | AttributeNotDefined | OwnershipAcquisitionPending | InteractionClassNotDefined | SaveInProgress | ConcurrentAccessAttempted | RestoreInProgress | FederateLoggingServiceCalls | ObjectClassNotDefined nameNotFound) {
             nameNotFound.printStackTrace();
         }
     }
 
-    public void registerObjects() {
+    /*public void registerObjects() {
         int classHandle = 0;
         try {
             classHandle = rtiamb.getObjectClassHandle("ObjectRoot.Klient");
@@ -113,7 +131,7 @@ public class FederatKlient extends AbstractFederat {
         } catch (NameNotFound | FederateNotExecutionMember | SaveInProgress | RTIinternalError | ObjectClassNotDefined | ConcurrentAccessAttempted | ObjectClassNotPublished | RestoreInProgress nameNotFound) {
             nameNotFound.printStackTrace();
         }
-    }
+    }*/
 
     public void waitForSyncPoint() {
 

@@ -45,7 +45,7 @@ public abstract class AbstractFederat {
 
     protected abstract void waitForSyncPoint();
 
-    protected abstract void registerObjects();
+    //protected abstract void registerObjects();
 
     protected abstract void deleteObjects();
     //
@@ -183,7 +183,7 @@ public abstract class AbstractFederat {
         attemptToDestroyFederation();
     }
 
-    protected void deleteObject(int handle) throws RTIexception {
+   /* protected void deleteObject(int handle) throws RTIexception {
         rtiamb.deleteObjectInstance(handle, generateTag());
     }
 
@@ -199,7 +199,7 @@ public abstract class AbstractFederat {
         return ("" + System.currentTimeMillis()).getBytes();
     }
 
-    public FomObject prepareFomObject(int classHandle, @SuppressWarnings("unchecked") Pair<String, Class<?>>... attributeNamesAndEncodingFunctions) {
+    /*public FomObject prepareFomObject(int classHandle, @SuppressWarnings("unchecked") Pair<String, Class<?>>... attributeNamesAndEncodingFunctions) {
         FomObject object = new FomObject(classHandle);
         iterateArrayWhileDoing(attributeNamesAndEncodingFunctions, pair -> {
             try {
@@ -227,5 +227,5 @@ public abstract class AbstractFederat {
         Arrays.stream(array).forEach(pair -> {
             action.accept(pair);
         });
-    }
+    }*/
 }
