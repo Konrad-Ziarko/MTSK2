@@ -228,7 +228,6 @@ public class FederatGUI extends AbstractFederat {
         logger.info("Proceed action received from gui, continuing");
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     protected void publishAndSubscribe() {
         try {
@@ -247,7 +246,7 @@ public class FederatGUI extends AbstractFederat {
             rtiamb.subscribeObjectClassAttributes(klientClassHandle.getClassHandle(),
                     klientClassHandle.createAttributeHandleSet());
 
-            statisticsClassHandle = prepareFomObject(rtiamb.getObjectClassHandle("HLAobjectRoot.Statistics"),
+            statisticsClassHandle = prepareFomObject(rtiamb.getObjectClassHandle("HLAobjectRoot.Statystyka"),
                     new Pair<String, Class<?>>("sredniCzasObslugi", Double.class),
                     new Pair<String, Class<?>>("sredniCzasOczekiwania", Double.class),
                     new Pair<String, Class<?>>("sredniaDlugoscKolejki", Double.class));
@@ -291,17 +290,6 @@ public class FederatGUI extends AbstractFederat {
         } catch (FederateLoggingServiceCalls federateLoggingServiceCalls) {
             federateLoggingServiceCalls.printStackTrace();
         }
-
-
-        /*rozpoczecieObslugiClassHandle = prepareFomInteraction(
-                rtiamb.getInteractionClassHandle("HLAinteractionRoot.RozpoczecieObslugi"),
-                new Pair<String, Class<?>>(CZAS_CZEKANIA_NA_OBSLUGE, Integer.class));
-        rtiamb.subscribeInteractionClass(rozpoczecieObslugiClassHandle.getClassHandle());
-
-        koniecObslugiClassHandle = prepareFomInteraction(
-                rtiamb.getInteractionClassHandle("HLAinteractionRoot.KoniecObslugi"),
-                new Pair<String, Class<?>>(CZAS_OBSLUGI, Integer.class));
-        rtiamb.subscribeInteractionClass(koniecObslugiClassHandle.getClassHandle());*/
 
 
     }
