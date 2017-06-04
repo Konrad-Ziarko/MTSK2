@@ -35,10 +35,15 @@ public abstract class AbstractFederat {
 
     protected static final String UPRZYWILEJOWANY = "czyUprzywilejowany";
 
+    protected static final String HLA_KLIENT = "HLAobjectRoot.Klient";
+    protected static final String HLA_WEJSCIE_KLIENT = "HLAinteractionRoot.wejscieDoKolejki";
+    protected static final String HLA_STOP_SIM = "HLAinteractionRoot.stopSymulacji";
+    protected static final String HLA_START_SIM = "HLAinteractionRoot.startSymulacji";
+
     //
     public static final String FOM_PATH = "src/fed/bank.xml";
-    public static final String federationName = "BankFederation";
-    public static final String READY_TO_RUN = "ReadyToRun";
+    public static final String federationName = Ambasador.FEDERATION_NAME;
+    public static final String READY_TO_RUN = Ambasador.READY_TO_RUN;
     //
     public RTIambassador rtiamb;
     public final double timeStep = 10.0;
@@ -48,9 +53,6 @@ public abstract class AbstractFederat {
     protected abstract void runFederate();
 
     protected abstract void publishAndSubscribe();
-
-    protected abstract void waitForSyncPoint();
-
     protected abstract void registerObjects();
 
     protected abstract void deleteObjects();

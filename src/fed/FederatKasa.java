@@ -5,8 +5,6 @@ import fom.FomInteraction;
 import hla.rti.*;
 import hla.rti.jlc.RtiFactoryFactory;
 
-import java.util.Collections;
-
 /**
  * Created by konrad on 5/28/17.
  */
@@ -20,7 +18,6 @@ public class FederatKasa extends AbstractFederat {
         fedamb = new Ambasador();
         joinFederation(federateName);
         registerSyncPoint();
-        waitForSyncPoint();
         achieveSyncPoint();
         //timePolicy(); //może to miało być zrobione?
         enableTimePolicy();
@@ -116,10 +113,6 @@ public class FederatKasa extends AbstractFederat {
         }
     }
 
-    @Override
-    public void waitForSyncPoint() {
-
-    }
     public void deleteObjects() {
     }
     public void registerObjects() {

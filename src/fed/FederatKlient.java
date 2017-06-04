@@ -5,7 +5,6 @@ package fed;
 
 import amb.Ambasador;
 import fom.FomInteraction;
-import fom.FomObject;
 import fom.Pair;
 import hla.rti.*;
 import hla.rti.jlc.EncodingHelpers;
@@ -16,12 +15,7 @@ import java.util.*;
 
 public class FederatKlient extends AbstractFederat {
     private static final String federateName = "FederatKlient";
-    private static final String HLA_KLIENT = "HLAobjectRoot.Klient";
-    private static final String HLA_WEJSCIE_KLIENT = "HLAinteractionRoot.wejscieDoKolejki";
-    private FomObject klientHandle;
-    private FomObject kasaHandle;
-    private FomInteraction wejscieDoKolejkiHandle;
-    private FomInteraction stopSymulacjiHandle;
+
 
     private Random rand = new Random();
     private float generatingChance = .99f;
@@ -42,21 +36,22 @@ public class FederatKlient extends AbstractFederat {
         fedamb = prepareFederationAmbassador();
         joinFederation(federateName);
         registerSyncPoint();
-        waitForSyncPoint();
         achieveSyncPoint();
         enableTimePolicy();
         publishAndSubscribe();
         registerObjects();
 
         while (fedamb.running) {
-            //double timeToAdvance = fedamb.federateTime + timeStep;
-            double federateTime = getFederateAmbassador().getFederateTime();
+            if (fedamb.isSimulationStarted()) {
+                //double timeToAdvance = fedamb.federateTime + timeStep;
+                double federateTime = getFederateAmbassador().getFederateTime();
 
-            if (rand.nextFloat() < generatingChance)
-                createAndRegisterCustomer(federateTime);
-            updateCustomersWithNewFederateTime(federateTime);
+                if (rand.nextFloat() < generatingChance)
+                    createAndRegisterCustomer(federateTime);
+                updateCustomersWithNewFederateTime(federateTime);
 
-            //logika obslugi wszystkich klientow
+                //logika obslugi wszystkich klientow
+            }
             advanceTime(timeStep);
 
         }
@@ -71,13 +66,13 @@ public class FederatKlient extends AbstractFederat {
         fedAmbassador
                 .registerAttributesUpdatedListener((objectHandle, theAttributes, tag, theTime, retractionHandle) -> {
                     Integer classHandle = objectToClassHandleMap.get(objectHandle);
-                    if (classHandle.equals(kasaHandle.getClassHandle())) {
+                    if (classHandle.equals(fedamb.kasaClassHandle.getClassHandle())) {
                         log("Checkout " + objectHandle + " updated, updating queue size");
                         for (int i = 0; i < theAttributes.size(); i++) {
                             int attributeHandle;
                             try {
                                 attributeHandle = theAttributes.getAttributeHandle(i);
-                                Class<?> typeFor = kasaHandle.getTypeFor(attributeHandle);
+                                Class<?> typeFor = fedamb.kasaClassHandle.getTypeFor(attributeHandle);
                                 if (isAttributeQueueLength(attributeHandle, typeFor)) {
                                     updateCheckoutQueueWith(objectHandle, theAttributes.getValue(i));
                                 }
@@ -89,9 +84,14 @@ public class FederatKlient extends AbstractFederat {
                 });
         fedAmbassador.registerInteractionReceivedListener((int interactionClass, ReceivedInteraction theInteraction,
                                                            byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) -> {
-            if (interactionClass == stopSymulacjiHandle.getClassHandle()) {
+            if (interactionClass == fedamb.stopSymulacjiClassHandle.getClassHandle()) {
                 log("Stop interaction received");
                 fedamb.running = false;
+            }
+        });
+        fedAmbassador.registerInteractionReceivedListener((int interactionClass, ReceivedInteraction theInteraction, byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) -> {
+            if (interactionClass == fedamb.startSymulacjiClassHandle.getClassHandle()) {
+                fedamb.setSimulationStarted(true);
             }
         });
         return fedAmbassador;
@@ -111,13 +111,13 @@ public class FederatKlient extends AbstractFederat {
         SuppliedParameters parameters;
         try {
             parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
-            parameters.add(wejscieDoKolejkiHandle.getHandleFor(NR_KLIENTA),
+            parameters.add(fedamb.wejscieDoKolejkiClassHandle.getHandleFor(NR_KLIENTA),
                     EncodingHelpers.encodeInt(customerObjectId));
-            parameters.add(wejscieDoKolejkiHandle.getHandleFor(NR_KASY),
+            parameters.add(fedamb.wejscieDoKolejkiClassHandle.getHandleFor(NR_KASY),
                     EncodingHelpers.encodeInt(checkoutObjectId));
-            parameters.add(wejscieDoKolejkiHandle.getHandleFor(UPRZYWILEJOWANY),
+            parameters.add(fedamb.wejscieDoKolejkiClassHandle.getHandleFor(UPRZYWILEJOWANY),
                     EncodingHelpers.encodeBoolean(privileged));
-            rtiamb.sendInteraction(wejscieDoKolejkiHandle.getClassHandle(), parameters, generateTag());
+            rtiamb.sendInteraction(fedamb.wejscieDoKolejkiClassHandle.getClassHandle(), parameters, generateTag());
         } catch (RTIexception e) {
             log("Couldn't send queue entered interaction, because: " + e.getMessage());
         }
@@ -125,7 +125,7 @@ public class FederatKlient extends AbstractFederat {
 
     private boolean isAttributeQueueLength(int attributeHandle, Class<?> typeFor) {
         return typeFor.getName().equalsIgnoreCase(Integer.class.getName())
-                && kasaHandle.getNameFor(attributeHandle).equalsIgnoreCase(DLUGOSC_KOLEJKI);
+                && fedamb.kasaClassHandle.getNameFor(attributeHandle).equalsIgnoreCase(DLUGOSC_KOLEJKI);
     }
 
     private void createAndRegisterCustomer(double oldFederateTime) {
@@ -141,9 +141,9 @@ public class FederatKlient extends AbstractFederat {
     }
 
     private int registerRtiCustomer(Klient customer) throws RTIexception {
-        int customerHandle = rtiamb.registerObjectInstance(klientHandle.getClassHandle());
+        int customerHandle = rtiamb.registerObjectInstance(fedamb.klientClassHandle.getClassHandle());
         SuppliedAttributes attributes = RtiFactoryFactory.getRtiFactory().createSuppliedAttributes();
-        attributes.add(klientHandle.getHandleFor(UPRZYWILEJOWANY),
+        attributes.add(fedamb.klientClassHandle.getHandleFor(UPRZYWILEJOWANY),
                 EncodingHelpers.encodeBoolean(customer.isPrivileged()));
         rtiamb.updateAttributeValues(customerHandle, attributes, generateTag());
         customersHandlesToObjects.put(customerHandle, customer);
@@ -154,10 +154,10 @@ public class FederatKlient extends AbstractFederat {
     public void publishAndSubscribe() {
         try {
             int addQueueEntryHandle = rtiamb.getInteractionClassHandle(HLA_WEJSCIE_KLIENT);
-            wejscieDoKolejkiHandle = new FomInteraction(addQueueEntryHandle);
-            wejscieDoKolejkiHandle.addAttributeHandle(NR_KASY, addQueueEntryHandle, Integer.class);
-            wejscieDoKolejkiHandle.addAttributeHandle(NR_KLIENTA, addQueueEntryHandle, Integer.class);
-            rtiamb.publishInteractionClass(wejscieDoKolejkiHandle.getClassHandle());
+            fedamb.wejscieDoKolejkiClassHandle = new FomInteraction(addQueueEntryHandle);
+            fedamb.wejscieDoKolejkiClassHandle.addAttributeHandle(NR_KASY, addQueueEntryHandle, Integer.class);
+            fedamb.wejscieDoKolejkiClassHandle.addAttributeHandle(NR_KLIENTA, addQueueEntryHandle, Integer.class);
+            rtiamb.publishInteractionClass(fedamb.wejscieDoKolejkiClassHandle.getClassHandle());
 
             /*int addClientHandle = rtiamb.getObjectClassHandle(HLA_KLIENT);
             klientHandle = new FomObject(addClientHandle);
@@ -168,14 +168,14 @@ public class FederatKlient extends AbstractFederat {
             klientHandle.addAttributeHandle(RODZAJ_ZALATWIANEJ_SPRAWY, addClientHandle, Integer.class);
             rtiamb.publishObjectClass(klientHandle.getClassHandle(), klientHandle.createAttributeHandleSet());*/
 
-            klientHandle = prepareFomObject(rtiamb.getObjectClassHandle(HLA_KLIENT),
+            fedamb.klientClassHandle = prepareFomObject(rtiamb.getObjectClassHandle(HLA_KLIENT),
                     new Pair<String, Class<?>>(NR_KASY, Integer.class),
                     new Pair<String, Class<?>>(NR_KLIENTA, Integer.class),
                     new Pair<String, Class<?>>(CZY_UPRZYWILEJOWANY, Boolean.class),
                     new Pair<String, Class<?>>(POZYCJA_KOLEJKI, Integer.class),
                     new Pair<String, Class<?>>(RODZAJ_ZALATWIANEJ_SPRAWY, Integer.class));
-            rtiamb.publishObjectClass(klientHandle.getClassHandle(),
-                    klientHandle.createAttributeHandleSet());
+            rtiamb.publishObjectClass(fedamb.klientClassHandle.getClassHandle(),
+                    fedamb.klientClassHandle.createAttributeHandleSet());
 
             /*int addQueueExitHandle = rtiamb.getInteractionClassHandle("HLAinteractionRoot.opuszczenieKolejki");
             interaction = new FomInteraction(addQueueExitHandle);
@@ -200,11 +200,11 @@ public class FederatKlient extends AbstractFederat {
             interaction.addAttributeHandle(NR_KLIENTA, addQueueEntryHandle, Integer.class);
             rtiamb.subscribeInteractionClass(addCashEntryHandle);
             */
-            int addSimulationStartHandle = rtiamb.getInteractionClassHandle("HLAinteractionRoot.startSymulacji");
-            rtiamb.subscribeInteractionClass(addSimulationStartHandle);
+            fedamb.startSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_START_SIM));
+            rtiamb.subscribeInteractionClass(fedamb.startSymulacjiClassHandle.getClassHandle());
 
-            int addSimulationStopHandle = rtiamb.getInteractionClassHandle("HLAinteractionRoot.stopSymulacji");
-            rtiamb.subscribeInteractionClass(addSimulationStopHandle);
+            fedamb.startSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_STOP_SIM));
+            rtiamb.subscribeInteractionClass(fedamb.startSymulacjiClassHandle.getClassHandle());
         } catch
                 (NameNotFound | FederateNotExecutionMember | RTIinternalError | InteractionClassNotDefined | SaveInProgress | ConcurrentAccessAttempted | RestoreInProgress | FederateLoggingServiceCalls | OwnershipAcquisitionPending | ObjectClassNotDefined | AttributeNotDefined
                         nameNotFound) {
@@ -218,6 +218,4 @@ public class FederatKlient extends AbstractFederat {
     public void registerObjects() {
     }
 
-    public void waitForSyncPoint() {
-    }
 }

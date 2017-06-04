@@ -1,5 +1,8 @@
 package amb;
 
+import fom.AFomEntity;
+import fom.FomInteraction;
+import fom.FomObject;
 import hla.rti.EventRetractionHandle;
 import hla.rti.LogicalTime;
 import hla.rti.ReceivedInteraction;
@@ -17,6 +20,30 @@ import java.util.List;
 public class Ambasador extends NullFederateAmbassador {
     public static final String FEDERATION_NAME = "BankFederation";
     public static final String READY_TO_RUN = "ReadyToRun";
+    protected boolean simulationStarted = false;
+
+    public boolean isSimulationStarted() {
+        return simulationStarted;
+    }
+
+    public void setSimulationStarted(boolean simulationStarted) {
+        this.simulationStarted = simulationStarted;
+    }
+
+    public FomInteraction stopSymulacjiClassHandle;
+    public FomInteraction startSymulacjiClassHandle;
+    public AFomEntity stopClassHandle;
+    public AFomEntity startClassHandle;
+    public FomObject kasaClassHandle;
+    public FomObject klientClassHandle;
+    public FomInteraction rozpoczecieObslugiClassHandle;
+    public FomInteraction koniecObslugiClassHandle;
+    public FomInteraction wejscieDoKolejkiClassHandle;
+    public FomInteraction otworzKaseClassHandle;
+    public FomInteraction closeTheMarketClassHandle;
+    public FomObject statisticsClassHandle;
+
+
     public double federateTime = 0.0;
     public double grantedTime = 0.0;
     public double federateLookahead = 1.0;
@@ -55,6 +82,7 @@ public class Ambasador extends NullFederateAmbassador {
         interactionReceivedListeners.forEach(listener -> {
             listener.notifyInteractionReceived(interactionClass, theInteraction, tag, theTime, eventRetractionHandle);
         });
+
     }
 
     public final void receiveInteraction(int interactionClass, ReceivedInteraction theInteraction, byte[] tag) {
@@ -90,26 +118,6 @@ public class Ambasador extends NullFederateAmbassador {
 
     public double getFederateLookahead() {
         return federateLookahead;
-    }
-
-    public boolean isRegulating() {
-        return isRegulating;
-    }
-
-    public boolean isConstrained() {
-        return isConstrained;
-    }
-
-    public boolean isAdvancing() {
-        return isAdvancing;
-    }
-
-    public boolean isAnnounced() {
-        return isAnnounced;
-    }
-
-    public boolean isReadyToRun() {
-        return isReadyToRun;
     }
 
     public void discoverObjectInstance(int theObject, int theObjectClass, String objectName) {
@@ -169,24 +177,19 @@ public class Ambasador extends NullFederateAmbassador {
                                             EventRetractionHandle retractionHandle);
     }
 
-    @Override
     public void timeRegulationEnabled(LogicalTime theFederateTime) {
         this.federateTime = convertTime(theFederateTime);
         this.isRegulating = true;
     }
 
-    @Override
     public void timeConstrainedEnabled(LogicalTime theFederateTime) {
         this.federateTime = convertTime(theFederateTime);
         this.isConstrained = true;
     }
 
-    @Override
     public void timeAdvanceGrant(LogicalTime theTime) {
         this.federateTime = convertTime(theTime);
         this.isAdvancing = false;
     }
-
-
 
 }
