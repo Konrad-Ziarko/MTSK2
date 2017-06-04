@@ -4,13 +4,13 @@ package fed;
  */
 
 import amb.Ambasador;
-import fom.FomInteraction;
 import fom.Pair;
 import hla.rti.*;
 import hla.rti.jlc.EncodingHelpers;
 import hla.rti.jlc.RtiFactoryFactory;
 import shared.Klient;
 
+import java.util.Map.*;
 import java.util.*;
 
 public class FederatKlient extends AbstractFederat {
@@ -18,16 +18,20 @@ public class FederatKlient extends AbstractFederat {
 
 
     private Random rand = new Random();
-    private float generatingChance = .99f;
+    private float generatingChance = .0f;
+    private boolean shouldGenerateNewClient = false;
+
+    private boolean shouldGeneratePrivileged = false;
 
     private List<Klient> allCustomers = new ArrayList<>();
     private Map<Integer, Integer> queuesSizes = new HashMap<>();
     private Map<Integer, Klient> customersHandlesToObjects = new HashMap<>();
     private Map<Klient, Integer> customersObjectsToHandles = new HashMap<>();
-    private int MAX_SHOPPING_TIME = 10;
-    private int MIN_SHOPPING_TIME = 5;
+
 
     public static void main(String[] args) {
+
+
         new FederatKlient().runFederate();
     }
 
@@ -36,19 +40,25 @@ public class FederatKlient extends AbstractFederat {
         fedamb = prepareFederationAmbassador();
         joinFederation(federateName);
         registerSyncPoint();
+        waitForUser();
         achieveSyncPoint();
         enableTimePolicy();
         publishAndSubscribe();
         registerObjects();
 
+        System.out.println("\nRuszyli");
         while (fedamb.running) {
             if (fedamb.isSimulationStarted()) {
-                //double timeToAdvance = fedamb.federateTime + timeStep;
+                executeAllQueuedTasks();
                 double federateTime = getFederateAmbassador().getFederateTime();
-                log("dupa");
                 if (rand.nextFloat() < generatingChance)
-                    createAndRegisterCustomer(federateTime);
+                    createAndRegisterCustomer(federateTime, false);
+                if (shouldGenerateNewClient) {
+                    createAndRegisterCustomer(getFederateAmbassador().getFederateTime(), shouldGeneratePrivileged);
+                    shouldGeneratePrivileged = shouldGenerateNewClient = false;
+                }
                 updateCustomersWithNewFederateTime(federateTime);
+
 
                 //logika obslugi wszystkich klientow
             }
@@ -63,36 +73,57 @@ public class FederatKlient extends AbstractFederat {
             objectToClassHandleMap.put(objectHandle, classHandle);
             queuesSizes.put(objectHandle, 0);
         });
-        fedAmbassador
-                .registerAttributesUpdatedListener((objectHandle, theAttributes, tag, theTime, retractionHandle) -> {
-                    Integer classHandle = objectToClassHandleMap.get(objectHandle);
-                    if (classHandle.equals(fedamb.kasaClassHandle.getClassHandle())) {
-                        log("Checkout " + objectHandle + " updated, updating queue size");
-                        for (int i = 0; i < theAttributes.size(); i++) {
-                            int attributeHandle;
-                            try {
-                                attributeHandle = theAttributes.getAttributeHandle(i);
-                                Class<?> typeFor = fedamb.kasaClassHandle.getTypeFor(attributeHandle);
-                                if (isAttributeQueueLength(attributeHandle, typeFor)) {
-                                    updateCheckoutQueueWith(objectHandle, theAttributes.getValue(i));
-                                }
-                            } catch (Exception e) {
-                                log(e.getMessage());
-                            }
+        fedAmbassador.registerAttributesUpdatedListener((objectHandle, theAttributes, tag, theTime, retractionHandle) -> {
+            Integer classHandle = objectToClassHandleMap.get(objectHandle);
+            if (classHandle.equals(fedamb.kasaClassHandle.getClassHandle())) {
+                log("Checkout " + objectHandle + " updated, updating queue size");
+                for (int i = 0; i < theAttributes.size(); i++) {
+                    int attributeHandle;
+                    try {
+                        attributeHandle = theAttributes.getAttributeHandle(i);
+                        Class<?> typeFor = fedamb.kasaClassHandle.getTypeFor(attributeHandle);
+                        if (isAttributeQueueLength(attributeHandle, typeFor)) {
+                            updateCheckoutQueueWith(objectHandle, theAttributes.getValue(i));
                         }
+                    } catch (Exception e) {
+                        log(e.getMessage());
                     }
-                });
+                }
+            }
+        });
         fedAmbassador.registerInteractionReceivedListener((int interactionClass, ReceivedInteraction theInteraction, byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) -> {
             if (interactionClass == fedamb.startSymulacjiClassHandle.getClassHandle()) {
                 log("Start interaction received");
                 fedamb.setSimulationStarted(true);
-            }else
-            if (interactionClass == fedamb.stopSymulacjiClassHandle.getClassHandle()) {
+            } else if (interactionClass == fedamb.stopSymulacjiClassHandle.getClassHandle()) {
                 log("Stop interaction received");
                 fedamb.running = false;
+            } else if (interactionClass == fedamb.nowyKlientClassHandle.getClassHandle()) {
+                log("Nowy klient interaction received");
+                shouldGenerateNewClient = true;
+                for (int i = 0; i < theInteraction.size(); i++) {
+                    int attributeHandle = 0;
+                    try {
+                        attributeHandle = theInteraction.getParameterHandle(i);
+                        String nameFor = fedamb.nowyKlientClassHandle.getNameFor(attributeHandle);
+                        byte[] value = theInteraction.getValue(i);
+                        if (nameFor.equalsIgnoreCase(UPRZYWILEJOWANY)) {
+                            shouldGeneratePrivileged = EncodingHelpers.decodeBoolean(value);
+                        }
+                    } catch (ArrayIndexOutOfBounds arrayIndexOutOfBounds) {
+                        arrayIndexOutOfBounds.printStackTrace();
+                    }
+                }
             }
         });
         return fedAmbassador;
+    }
+
+    private Optional<Entry<Integer, Integer>> getShortestQueue() {
+        Optional<Entry<Integer, Integer>> min = queuesSizes.entrySet().stream().min((entry1, entry2) -> {
+            return entry1.getValue() - entry2.getValue();
+        });
+        return min;
     }
 
     private void updateCheckoutQueueWith(int objectHandle, byte[] value) throws ArrayIndexOutOfBounds {
@@ -102,6 +133,20 @@ public class FederatKlient extends AbstractFederat {
     private void updateCustomersWithNewFederateTime(double newFederateTime) {
         allCustomers.forEach(customer -> {
             customer.updateWithNewFederateTime(newFederateTime);
+        });
+        allCustomers.forEach(customer ->{
+            submitNewTask(()->{
+                optionallySendQueueEnteredInteraction(customer, getShortestQueue());
+            });
+        });
+    }
+
+    private void optionallySendQueueEnteredInteraction(Klient customer, Optional<Entry<Integer, Integer>> min) {
+        min.ifPresent(entry -> {
+            log("Customer " + customer + " entering queue in checkout " + entry.getKey());
+            entry.setValue(entry.getValue() + 1);
+            sendQueueEnteredInteraction(this.customersObjectsToHandles.get(customer), entry.getKey(), customer.isPrivileged());
+            this.allCustomers.remove(customer);
         });
     }
 
@@ -122,17 +167,16 @@ public class FederatKlient extends AbstractFederat {
     }
 
     private boolean isAttributeQueueLength(int attributeHandle, Class<?> typeFor) {
-        return typeFor.getName().equalsIgnoreCase(Integer.class.getName())
-                && fedamb.kasaClassHandle.getNameFor(attributeHandle).equalsIgnoreCase(DLUGOSC_KOLEJKI);
+        return typeFor.getName().equalsIgnoreCase(Integer.class.getName());
     }
 
-    private void createAndRegisterCustomer(double oldFederateTime) {
-        Klient customer = new Klient(oldFederateTime, rand.nextInt(MAX_SHOPPING_TIME - MIN_SHOPPING_TIME + 1) + MIN_SHOPPING_TIME);
-        customer.setPrivileged(rand.nextBoolean());
+    private void createAndRegisterCustomer(double oldFederateTime, boolean isPrivileged) {
+        Klient customer = new Klient(oldFederateTime, rand.nextInt(MAX_SERVICE_TIME - MIN_SERVICE_TIME + 1) + MIN_SERVICE_TIME);
+        customer.setPrivileged(isPrivileged);
         allCustomers.add(customer);
         try {
             int customerHandle = registerRtiCustomer(customer);
-            log("New customer " + customerHandle + " enters the bank: " + customer);
+            log("New customer " + customerHandle + " enters the bank: " + customer + " U=" + customer.isPrivileged());
         } catch (RTIexception e) {
             log("Couldn't create new customer, because: " + e.getMessage());
         }
@@ -151,58 +195,15 @@ public class FederatKlient extends AbstractFederat {
 
     public void publishAndSubscribe() {
         try {
-            /*int addQueueEntryHandle = rtiamb.getInteractionClassHandle(HLA_WEJSCIE_KLIENT);
-            fedamb.wejscieDoKolejkiClassHandle = new FomInteraction(addQueueEntryHandle);
-            fedamb.wejscieDoKolejkiClassHandle.addAttributeHandle(NR_KASY, addQueueEntryHandle, Integer.class);
-            fedamb.wejscieDoKolejkiClassHandle.addAttributeHandle(NR_KLIENTA, addQueueEntryHandle, Integer.class);
-            rtiamb.publishInteractionClass(fedamb.wejscieDoKolejkiClassHandle.getClassHandle());*/
+            subscribeKasa();
+            publishKlient();
 
-            /*int addClientHandle = rtiamb.getObjectClassHandle(HLA_KLIENT);
-            klientHandle = new FomObject(addClientHandle);
-            klientHandle.addAttributeHandle(NR_KASY, addClientHandle, Integer.class);
-            klientHandle.addAttributeHandle(NR_KLIENTA, addClientHandle, Integer.class);
-            klientHandle.addAttributeHandle(POZYCJA_KOLEJKI, addClientHandle, Integer.class);
-            klientHandle.addAttributeHandle(CZY_UPRZYWILEJOWANY, addClientHandle, Boolean.class);
-            klientHandle.addAttributeHandle(RODZAJ_ZALATWIANEJ_SPRAWY, addClientHandle, Integer.class);
-            rtiamb.publishObjectClass(klientHandle.getClassHandle(), klientHandle.createAttributeHandleSet());*/
+            publishWejscieDoKolejki();
 
-            fedamb.klientClassHandle = prepareFomObject(rtiamb.getObjectClassHandle(HLA_KLIENT),
-                    new Pair<String, Class<?>>(NR_KASY, Integer.class),
-                    new Pair<String, Class<?>>(NR_KLIENTA, Integer.class),
-                    new Pair<String, Class<?>>(CZY_UPRZYWILEJOWANY, Boolean.class),
-                    new Pair<String, Class<?>>(POZYCJA_KOLEJKI, Integer.class),
-                    new Pair<String, Class<?>>(RODZAJ_ZALATWIANEJ_SPRAWY, Integer.class));
-            rtiamb.publishObjectClass(fedamb.klientClassHandle.getClassHandle(),
-                    fedamb.klientClassHandle.createAttributeHandleSet());
+            subscribeNowyKlient();
 
-            /*int addQueueExitHandle = rtiamb.getInteractionClassHandle("HLAinteractionRoot.opuszczenieKolejki");
-            interaction = new FomInteraction(addQueueExitHandle);
-            interaction.addAttributeHandle(NR_KASY, addQueueEntryHandle, Integer.class);
-            interaction.addAttributeHandle(NR_KLIENTA, addQueueEntryHandle, Integer.class);
-            rtiamb.publishInteractionClass(addQueueExitHandle);
-
-            int addServicedHandle = rtiamb.getInteractionClassHandle("HLAinteractionRoot.obsluzonoKlienta");
-            interaction = new FomInteraction(addServicedHandle);
-            interaction.addAttributeHandle(NR_KASY, addQueueEntryHandle, Integer.class);
-            interaction.addAttributeHandle(NR_KLIENTA, addQueueEntryHandle, Integer.class);
-            rtiamb.subscribeInteractionClass(addServicedHandle);
-
-            int addNewClientHandle = rtiamb.getInteractionClassHandle("HLAinteractionRoot.nowyKlient");
-            interaction = new FomInteraction(addNewClientHandle);
-            interaction.addAttributeHandle(NR_KLIENTA, addQueueEntryHandle, Integer.class);
-            rtiamb.subscribeInteractionClass(addNewClientHandle);
-
-            int addCashEntryHandle = rtiamb.getInteractionClassHandle("HLAinteractionRoot.wejscieDoKasy");
-            interaction = new FomInteraction(addCashEntryHandle);
-            interaction.addAttributeHandle(NR_KASY, addQueueEntryHandle, Integer.class);
-            interaction.addAttributeHandle(NR_KLIENTA, addQueueEntryHandle, Integer.class);
-            rtiamb.subscribeInteractionClass(addCashEntryHandle);
-            */
-            fedamb.stopSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_STOP_SIM));
-            rtiamb.subscribeInteractionClass(fedamb.stopSymulacjiClassHandle.getClassHandle());
-
-            fedamb.startSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_START_SIM));
-            rtiamb.subscribeInteractionClass(fedamb.startSymulacjiClassHandle.getClassHandle());
+            subscribeSimStart();
+            subscribeSimStop();
         } catch
                 (NameNotFound | FederateNotExecutionMember | RTIinternalError | InteractionClassNotDefined | SaveInProgress | ConcurrentAccessAttempted | RestoreInProgress | FederateLoggingServiceCalls | OwnershipAcquisitionPending | ObjectClassNotDefined | AttributeNotDefined
                         nameNotFound) {

@@ -25,6 +25,9 @@ public class FederatGUI extends AbstractFederat {
     private JFrame frame;
     private JButton start;
     private JButton stop;
+    private JButton newNormal;
+    private JButton newPrivileged;
+    private JButton newCheckout;
     private JTextArea textArea;
     private JScrollPane scrollPane;
     //
@@ -49,12 +52,14 @@ public class FederatGUI extends AbstractFederat {
 
     private boolean shouldSendStartInteraction = false;
     private boolean shouldSendStopInteraction = false;
+    private boolean shouldGenerateNewClient = false;
+    private boolean shouldGeneratePrivileged = false;
+    private boolean shouldGenerateNewCheckout = false;
 
-    public void log(String str){
-        try{
-            textArea.append(str+"\n");
-
-        }catch (NullPointerException e){
+    public void log(String str) {
+        try {
+            textArea.append(str + "\n");
+        } catch (NullPointerException e) {
             System.out.println(str);
         }
     }
@@ -72,6 +77,8 @@ public class FederatGUI extends AbstractFederat {
 
     private void createWindow() {
         frame = new JFrame(federateName);
+        JPanel panel = new JPanel();
+
         start = new JButton("Start");
         start.setEnabled(true);
         start.addActionListener(new ActionListener() {
@@ -79,6 +86,11 @@ public class FederatGUI extends AbstractFederat {
                 shouldSendStartInteraction = true;
             }
         });
+        panel.add(start);
+        start.setSize(100, 30);
+        start.setLocation(50, 20);
+
+
         stop = new JButton("Stop");
         stop.setEnabled(false);
         stop.addActionListener(new ActionListener() {
@@ -86,25 +98,59 @@ public class FederatGUI extends AbstractFederat {
                 shouldSendStopInteraction = true;
             }
         });
+        panel.add(stop);
+        stop.setSize(100, 30);
+        stop.setLocation(200, 20);
+
+        newNormal = new JButton("Normalny");
+        newNormal.setEnabled(true);
+        newNormal.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                shouldGenerateNewClient = true;
+                shouldGeneratePrivileged = false;
+            }
+        });
+        panel.add(newNormal);
+        newNormal.setSize(100, 30);
+        newNormal.setLocation(350, 20);
+
+
+        newPrivileged = new JButton("Uprzywilejowany");
+        newPrivileged.setEnabled(true);
+        newPrivileged.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                shouldGenerateNewClient = true;
+                shouldGeneratePrivileged = true;
+            }
+        });
+        panel.add(newPrivileged);
+        newPrivileged.setSize(100, 30);
+        newPrivileged.setLocation(500, 20);
+
+
+        newCheckout = new JButton("Nowa Kasa");
+        newCheckout.setEnabled(true);
+        newCheckout.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                shouldGenerateNewCheckout = true;
+            }
+        });
+        panel.add(newCheckout);
+        newCheckout.setSize(100, 30);
+        newCheckout.setLocation(650, 20);
+
+
         textArea = new JTextArea();
         textArea.setEnabled(true);
-
-        JPanel panel = new JPanel();
-
         scrollPane = new JScrollPane();
         scrollPane.setViewportView(textArea);
         scrollPane.setBounds(30, 65, 475, 180);
         panel.add(scrollPane);
         scrollPane.setSize(700, 400);
         scrollPane.setLocation(50, 100);
-
-        panel.add(start);
-        start.setSize(100, 30);
-        start.setLocation(200, 20);
-        panel.add(stop);
-        stop.setSize(100, 30);
-        stop.setLocation(400, 20);
         panel.add(scrollPane);
+
+
         frame.add(panel);
         frame.setContentPane(panel);
         panel.setLayout(null);
@@ -115,22 +161,58 @@ public class FederatGUI extends AbstractFederat {
         frame.setLocationRelativeTo(null);
     }
 
+    private void generateNewClient(boolean b) {
+        log("Sending \"nowy klient\" interaction");
+        SuppliedParameters parameters;
+        try {
+            parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
+            parameters.add(fedamb.nowyKlientClassHandle.getHandleFor(UPRZYWILEJOWANY),
+                    EncodingHelpers.encodeBoolean(b));
+            rtiamb.sendInteraction(fedamb.nowyKlientClassHandle.getClassHandle(), parameters, generateTag());
+        } catch (RTIexception e1) {
+            log("Couldn't send \"nowy klient\" interaction, because: " + e1.getMessage());
+        }
+        shouldGenerateNewClient = shouldGeneratePrivileged = false;
+    }
+    private void generateNewCheckout() {
+        log("Sending \"nowa kasa\" interaction");
+        SuppliedParameters parameters;
+        try {
+            parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
+            rtiamb.sendInteraction(fedamb.otworzKaseClassHandle.getClassHandle(), parameters, generateTag());
+        } catch (RTIexception e1) {
+            log("Couldn't send \"nowa kasa\" interaction, because: " + e1.getMessage());
+        }
+        shouldGenerateNewCheckout = false;
+    }
+
     public void runFederate() {
         createWindow();
         createFederation();
         fedamb = prepareFederationAmbassador();
         joinFederation(federateName);
         registerSyncPoint();
+        waitForUser();
         achieveSyncPoint();
         enableTimePolicy();
         publishAndSubscribe();
         registerObjects();
 
+        System.out.println("\nRuszyli");
         while (fedamb.running) {
             if (shouldSendStartInteraction)
                 sendStartInteraction();
             if (shouldSendStopInteraction)
                 sendStopFederationInteraction();
+            if (shouldGenerateNewClient)
+                if (shouldGeneratePrivileged)
+                    generateNewClient(true);
+                else
+                    generateNewClient(false);
+            if(shouldGenerateNewCheckout)
+                generateNewCheckout();
+
+
             if (fedamb.isSimulationStarted()) {
                 //textArea.append("dupa\n");
                 //log("dupa\n");
@@ -144,6 +226,7 @@ public class FederatGUI extends AbstractFederat {
         }
         sendStopFederationInteraction();
     }
+
 
     private void sendStartInteraction() {
         log("Sending \"start\" interaction");
@@ -178,10 +261,6 @@ public class FederatGUI extends AbstractFederat {
         super.cleanUpFederate();
     }
 
-   /* @Override
-    protected AbstractFederat getFederateAmbassador() {
-        return fedAmbassador;
-    }*/
 
     protected Ambasador prepareFederationAmbassador() {
         fedAmbassador = new Ambasador();
@@ -210,7 +289,7 @@ public class FederatGUI extends AbstractFederat {
                 int extractCustomerClassHandle = extractCustomerClassHandle(theInteraction);
                 log("Customer " + extractCustomerClassHandle + " entered queue");
                 customers.remove(new Integer(extractCustomerClassHandle));
-            } else if (interactionClass == fedamb.koniecObslugiClassHandle.getClassHandle()) {
+            } else if (interactionClass == fedamb.obsluzonoKlientaClassHandle.getClassHandle()) {
                 //controller.setCustomersLeft(++customersLeft);
             }
         });
@@ -288,56 +367,22 @@ public class FederatGUI extends AbstractFederat {
 
     protected void publishAndSubscribe() {
         try {
-            fedamb.kasaClassHandle = prepareFomObject(rtiamb.getObjectClassHandle("HLAobjectRoot.Kasa"),
-                    new Pair<String, Class<?>>(NR_OBSLUGIWANEGO, Integer.class),
-                    new Pair<String, Class<?>>(DLUGOSC_KOLEJKI, Integer.class));
-            rtiamb.subscribeObjectClassAttributes(fedamb.kasaClassHandle.getClassHandle(),
-                    fedamb.kasaClassHandle.createAttributeHandleSet());
+            subscribeKasa();
+            subscribeKlient();
+            subscribeStatystyka();
 
-            fedamb.klientClassHandle = prepareFomObject(rtiamb.getObjectClassHandle("HLAobjectRoot.Klient"),
-                    new Pair<String, Class<?>>(NR_KLIENTA, Integer.class),
-                    new Pair<String, Class<?>>(CZAS_ZAKUPOW, Integer.class),
-                    new Pair<String, Class<?>>(UPRZYWILEJOWANY, Boolean.class),
-                    new Pair<String, Class<?>>(NR_W_KOLEJCE, Integer.class),
-                    new Pair<String, Class<?>>(NR_KASY, Integer.class));
-            rtiamb.subscribeObjectClassAttributes(fedamb.klientClassHandle.getClassHandle(),
-                    fedamb.klientClassHandle.createAttributeHandleSet());
+            subscribeWejscieDoKolejki();
 
-            fedamb.statisticsClassHandle = prepareFomObject(rtiamb.getObjectClassHandle("HLAobjectRoot.Statystyka"),
-                    new Pair<String, Class<?>>("sredniCzasObslugi", Double.class),
-                    new Pair<String, Class<?>>("sredniCzasOczekiwania", Double.class),
-                    new Pair<String, Class<?>>("sredniaDlugoscKolejki", Double.class));
-            rtiamb.subscribeObjectClassAttributes(fedamb.statisticsClassHandle.getClassHandle(),
-                    fedamb.statisticsClassHandle.createAttributeHandleSet());
-
-            fedamb.wejscieDoKolejkiClassHandle = prepareFomInteraction(
-                    rtiamb.getInteractionClassHandle("HLAinteractionRoot.wejscieDoKolejki"),
-                    new Pair<String, Class<?>>(ID_KLIENT, Integer.class),
-                    new Pair<String, Class<?>>(ID_KASA, Integer.class));
-            rtiamb.subscribeInteractionClass(fedamb.wejscieDoKolejkiClassHandle.getClassHandle());
-
-            fedamb.otworzKaseClassHandle = prepareFomInteraction(
-                    rtiamb.getInteractionClassHandle("HLAinteractionRoot.otworzKase"));
-            rtiamb.subscribeInteractionClass(fedamb.otworzKaseClassHandle.getClassHandle());
-
-            fedamb.closeTheMarketClassHandle = prepareFomInteraction(
-                    rtiamb.getInteractionClassHandle("HLAinteractionRoot.zamknijKase"));
-            rtiamb.publishInteractionClass(fedamb.closeTheMarketClassHandle.getClassHandle());
+            publishOtworzKase();
 
 
+            publishNowyKlient();
 
-            fedamb.stopSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_STOP_SIM));
-            rtiamb.publishInteractionClass(fedamb.stopSymulacjiClassHandle.getClassHandle());
-
-            fedamb.startSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_START_SIM));
-            rtiamb.publishInteractionClass(fedamb.startSymulacjiClassHandle.getClassHandle());
-
-
+            publishSimStart();
+            publishSimStop();
         } catch (NameNotFound | FederateNotExecutionMember | SaveInProgress | RTIinternalError | ConcurrentAccessAttempted | ObjectClassNotDefined | RestoreInProgress | InteractionClassNotDefined | FederateLoggingServiceCalls | AttributeNotDefined nameNotFound) {
             nameNotFound.printStackTrace();
         }
-
-
     }
 
     protected void registerObjects() {

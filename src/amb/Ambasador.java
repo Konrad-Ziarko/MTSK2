@@ -30,16 +30,23 @@ public class Ambasador extends NullFederateAmbassador {
         this.simulationStarted = simulationStarted;
     }
 
+
     public FomInteraction stopSymulacjiClassHandle;
     public FomInteraction startSymulacjiClassHandle;
+
+    public FomInteraction nowyKlientClassHandle;
+
+    public FomInteraction obsluzonoKlientaClassHandle;
+    public FomInteraction wejscieDoKolejkiClassHandle;
+    public FomInteraction opuszczenieKolejkiClassHandle;
+    public FomInteraction wejscieDoKasyClassHandle;
+
+    public FomInteraction otworzKaseClassHandle;
+    public FomInteraction zamknijKaseClassHandle;
+
+    public FomObject statisticsClassHandle;
     public FomObject kasaClassHandle;
     public FomObject klientClassHandle;
-    public FomInteraction rozpoczecieObslugiClassHandle;
-    public FomInteraction koniecObslugiClassHandle;
-    public FomInteraction wejscieDoKolejkiClassHandle;
-    public FomInteraction otworzKaseClassHandle;
-    public FomInteraction closeTheMarketClassHandle;
-    public FomObject statisticsClassHandle;
 
 
     public double federateTime = 0.0;
@@ -52,6 +59,11 @@ public class Ambasador extends NullFederateAmbassador {
 
     public boolean isAnnounced = false;
     public boolean isReadyToRun = false;
+
+
+    public boolean shouldGenerateNewClient = false;
+    public boolean shouldGeneratePrivileged = false;
+
 
     public boolean running = true;
     protected List<ObjectInstanceCreatedListener> objectInstanceCreatedListeners = new ArrayList<>();

@@ -1,5 +1,7 @@
 package shared;
 
+import java.util.Random;
+
 /**
  * Created by konrad on 5/29/17.
  */
@@ -8,11 +10,13 @@ public class Klient {
     private Double serviceTime;
     private boolean hasServiceFinished;
     private boolean privileged;
+    private Double impatienceTime;
 
     public Klient(double oldFederateTime, int serviceTime) {
         this.oldFederateTime = oldFederateTime;
         this.serviceTime = (double) serviceTime;
         privileged = false;
+        impatienceTime = new Random().nextDouble()*400+50;
     }
 
     public double getOldFederateTime() {
@@ -28,6 +32,9 @@ public class Klient {
         if (serviceTime != null) {
             this.hasServiceFinished = newFederateTime - oldFederateTime >= serviceTime;
         }
+        //jesli czas zniecierpliwienia minal to zmien kolejke i przedluz czas zniecierpliwienia
+        //else if ()
+
     }
 
     public boolean hasServiceFinished() {

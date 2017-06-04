@@ -10,22 +10,16 @@ import java.util.function.Consumer;
  */
 public class Kolejka {
     private int objectId;
-    private int maxQueueSize;
     private List<Klient> customersQueue;
     private Klient servicedCustomer;
 
-    public Kolejka(int objectId, int maxQueueSize) {
+    public Kolejka(int objectId) {
         this.objectId = objectId;
-        this.maxQueueSize = maxQueueSize;
         customersQueue = new LinkedList<>();
     }
 
     public int getQueueSize() {
         return customersQueue.size();
-    }
-
-    public boolean isFilled() {
-        return getQueueSize() >= maxQueueSize;
     }
 
     public void addCustomer(Klient customer) {

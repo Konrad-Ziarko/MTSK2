@@ -1,114 +1,187 @@
 package fed;
 
 import amb.Ambasador;
-import fom.FomInteraction;
+import fom.Pair;
 import hla.rti.*;
+import hla.rti.jlc.EncodingHelpers;
 import hla.rti.jlc.RtiFactoryFactory;
+import shared.Kasa;
+import shared.Klient;
+
+import java.util.*;
 
 /**
  * Created by konrad on 5/28/17.
  */
 public class FederatKasa extends AbstractFederat {
     private static final String federateName = "KasaFederate";
+    private static Random rand = new Random();
 
 
-    @Override
+    private Map<Integer, Kasa> checkoutObjectIdsToObjects = new HashMap<>();
+
+
+    public static void main (String[] args){
+        new FederatKasa().runFederate();
+    }
+
+
+
     public void runFederate() {
         createFederation();
-        fedamb = new Ambasador();
+        fedamb = prepareFederationAmbassador();
         joinFederation(federateName);
         registerSyncPoint();
+        waitForUser();
         achieveSyncPoint();
-        //timePolicy(); //może to miało być zrobione?
         enableTimePolicy();
         publishAndSubscribe();
         registerObjects();
 
+        System.out.println("\nRuszyli");
         while (fedamb.running) {
-            double timeToAdvance = fedamb.federateTime + timeStep;
-            advanceTime(timeToAdvance);
+            if(fedamb.isSimulationStarted()){
+                executeAllQueuedTasks();
+                checkoutObjectIdsToObjects.values().forEach(checkout -> {
+                    double federateTime = getFederateAmbassador().getFederateTime();
+                    checkout.updateCurrentBuyingCustomer(federateTime, (buyingCustomer, waitingTime) -> {
+                        log(federateTime+" "+buyingCustomer+" started being serviced after waiting "+ waitingTime);
+                        sendBuyingStartedInteraction(waitingTime);
+                        try {
+                            updateCheckoutInRti(checkout.getCheckoutId(), checkout);
+                        } catch (Exception e) {
+                            log(e.getMessage());
+                        }
+                    });
+                    checkout.updateWithNewFederateTime(federateTime, finishedCustomer -> {
+                        log(federateTime+" "+finishedCustomer+" finished being serviced after "+finishedCustomer.getServiceTime()+" time units");
+                        sendBuyingFinishedInteraction(finishedCustomer.getServiceTime());
+                    });
+                });
+            }
+            advanceTime(timeStep);
 
-            /*if (fedamb.externalEvents.size() > 0) {
-                Collections.sort(fedamb.externalEvents, new ExternalEvent.ExternalEventComparator());
-                for (ExternalEvent externalEvent : fedamb.externalEvents) {
-                    fedamb.federateTime = externalEvent.getTime();
-                    switch (externalEvent.getEventType()) {
-                        case ADD:
-                            this.addToStock(externalEvent.getQty());
-                            break;
+        }
+    }
+    private void sendBuyingStartedInteraction(Double waitingTime) {
+        log("Sending waiting time of "+ waitingTime);
+        SuppliedParameters parameters;
+        try {
+            parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
+            parameters.add(fedamb.wejscieDoKasyClassHandle.getHandleFor(CZAS_CZEKANIA_NA_OBSLUGE),
+                    EncodingHelpers.encodeDouble(waitingTime));
+            rtiamb.sendInteraction(fedamb.wejscieDoKasyClassHandle.getClassHandle(), parameters, generateTag());
+        } catch (RTIexception e) {
+            log("Couldn't send buying started interaction, because: "+ e.getMessage());
+        }
+    }
+    private void sendBuyingFinishedInteraction(double buyingTime) {
+        log("Sending buying time of "+ buyingTime);
+        SuppliedParameters parameters;
+        try {
+            parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
+            parameters.add(fedamb.obsluzonoKlientaClassHandle.getHandleFor(CZAS_OBSLUGI),
+                    EncodingHelpers.encodeDouble(buyingTime));
+            rtiamb.sendInteraction(fedamb.obsluzonoKlientaClassHandle.getClassHandle(), parameters, generateTag());
+        } catch (RTIexception e) {
+            log("Couldn't send buying started interaction, because: "+ e.getMessage());
+        }
+    }
+    protected Ambasador prepareFederationAmbassador() {
+        fedamb = new Ambasador();
+        fedamb.registerInteractionReceivedListener((int interactionClass, ReceivedInteraction theInteraction, byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) -> {
+                    if (interactionClass == fedamb.otworzKaseClassHandle.getClassHandle()) {
+                        submitNewTask(() -> {
+                            log("Opening new checkout");
+                            initiateNewCheckout();
+                        });
+                    } else if (interactionClass == fedamb.wejscieDoKolejkiClassHandle.getClassHandle()) {
+                        submitNewTask(() -> {
+                            prepareCustomerAndUpdateCheckoutInRti(theInteraction);
+                        });
+                    } else if (interactionClass == fedamb.startSymulacjiClassHandle.getClassHandle()) {
+                        log("Start interaction received");
+                        fedamb.setSimulationStarted(true);
+                    } else if (interactionClass == fedamb.stopSymulacjiClassHandle.getClassHandle()) {
+                        log("Stop interaction received");
+                        fedamb.running = false;
                     }
-                }
-                fedamb.externalEvents.clear();
-            }
+                });
+        return fedamb;
+    }
 
-            if (fedamb.grantedTime == timeToAdvance) {
-                timeToAdvance += fedamb.federateLookahead;
-                log("Updating stock at time: " + timeToAdvance);
-                updateHLAObject(timeToAdvance);
-                fedamb.federateTime = timeToAdvance;
-            }
-            try {
-                rtiamb.tick();
-            } catch (RTIinternalError | ConcurrentAccessAttempted rtIinternalError) {
-                rtIinternalError.printStackTrace();
-            }*/
+    private void initiateNewCheckout() {
+        try {
+            int checkoutObjectId = rtiamb.registerObjectInstance(fedamb.kasaClassHandle.getClassHandle());
+            Kasa checkout = new Kasa(checkoutObjectId);
+            checkoutObjectIdsToObjects.put(checkoutObjectId, checkout);
+            updateCheckoutInRti(checkoutObjectId, checkout);
+        } catch (Exception e) {
+            log("Couldn't open new checkout, because: "+ e.getMessage());
+        }
+    }
+    private void updateCheckoutInRti(int checkoutId, Kasa checkout){
+        SuppliedAttributes attributes = null;
+        try {
+            attributes = RtiFactoryFactory.getRtiFactory().createSuppliedAttributes();
+            byte[] encodedQueueSize = EncodingHelpers.encodeInt(checkout.getQueueSize());
+            attributes.add(fedamb.kasaClassHandle.getHandleFor(DLUGOSC_KOLEJKI), encodedQueueSize);
+            rtiamb.updateAttributeValues(checkoutId, attributes, generateTag(), convertTime(fedamb.getFederateTime() + 1));
+        } catch (InvalidFederationTime e) {
+            log("Couldn't update Checkout "+checkoutId+", because of invalid federation time error: "+e.getMessage());
+        } catch (ObjectNotKnown | RTIinternalError | AttributeNotOwned| FederateNotExecutionMember | SaveInProgress | AttributeNotDefined | ConcurrentAccessAttempted | RestoreInProgress objectNotKnown) {
+            objectNotKnown.printStackTrace();
         }
     }
 
-    @Override
-    public void publishAndSubscribe() {
-        int classHandle = 0;
+    private void prepareCustomerAndUpdateCheckoutInRti(ReceivedInteraction theInteraction) {
+        log("Received wejscieDoKolejki");
         try {
-            classHandle = rtiamb.getObjectClassHandle("ObjectRoot.Kasa");
-            int cashNumberHandle = rtiamb.getAttributeHandle("nrKasy", classHandle);
-            int clientNumberHandle = rtiamb.getAttributeHandle("nrObslugiwanegoKlienta", classHandle);
-            AttributeHandleSet attributes =
-                    RtiFactoryFactory.getRtiFactory().createAttributeHandleSet();
-            attributes.add(cashNumberHandle);
-            attributes.add(clientNumberHandle);
+            Klient customer = new Klient(getFederateAmbassador().getFederateTime(),rand.nextInt(MAX_SERVICE_TIME - MIN_SERVICE_TIME + 1) + MIN_SERVICE_TIME);
+            Pair<Integer, Integer> checkoutAndCustomerId = getCheckoutAndCustomerIdParameters(theInteraction, customer);
+            Kasa checkout = checkoutObjectIdsToObjects.get(checkoutAndCustomerId.getA());
+            checkout.addCustomer(customer);
+            log("Customer "+checkoutAndCustomerId.getB()+" entered queue in checkout "+checkoutAndCustomerId.getA());
+            log(""+customer);
+            updateCheckoutInRti(checkoutAndCustomerId.getA(), checkout);
+        } catch (Exception e) {
+            log(e.getMessage());
+        }
+    }
+    private Pair<Integer, Integer> getCheckoutAndCustomerIdParameters(ReceivedInteraction theInteraction, Klient customer) throws ArrayIndexOutOfBounds {
+        int checkoutId = -1;
+        int customerId = -1;
+        for (int i = 0; i < theInteraction.size(); i++) {
+            int attributeHandle = theInteraction.getParameterHandle(i);
+            String nameFor = fedamb.wejscieDoKolejkiClassHandle.getNameFor(attributeHandle);
+            byte[] value = theInteraction.getValue(i);
+            if (nameFor.equalsIgnoreCase(NR_KASY)) {
+                checkoutId = EncodingHelpers.decodeInt(value);
+            } else if (nameFor.equalsIgnoreCase(NR_KLIENTA)) {
+                customerId = EncodingHelpers.decodeInt(value);
+            } else if (nameFor.equalsIgnoreCase(UPRZYWILEJOWANY)) {
+                customer.setPrivileged(EncodingHelpers.decodeBoolean(value));
+            }
+        }
+        return new Pair<>(checkoutId, customerId);
+    }
+    public void publishAndSubscribe(){
+        try {
 
-            rtiamb.publishObjectClass(classHandle, attributes);
+            publishKasa();
+            subscribeKlient();
 
-            int addClientServicedHandle = rtiamb.getInteractionClassHandle("InteractionRoot.obsluzonoKlienta");
-            FomInteraction interaction = new FomInteraction(addClientServicedHandle);
-            interaction.addAttributeHandle(NR_KASY, addClientServicedHandle, Integer.class);
-            interaction.addAttributeHandle(NR_KLIENTA, addClientServicedHandle, Integer.class);
-            rtiamb.publishInteractionClass(addClientServicedHandle);
+            subscribeOtworzKase();
+            subscribeZamknijKase();
 
-            int addCashEntryHandle = rtiamb.getInteractionClassHandle("InteractionRoot.wejscieDoKasy");
-            interaction = new FomInteraction(addCashEntryHandle);
-            interaction.addAttributeHandle(NR_KASY, addCashEntryHandle, Integer.class);
-            interaction.addAttributeHandle(NR_KLIENTA, addCashEntryHandle, Integer.class);
-            rtiamb.publishInteractionClass(addCashEntryHandle);
+            publishObsluzonoKlienta();
+            publishWejscieDoKasy();
 
-            int addQueueExitHandle = rtiamb.getInteractionClassHandle("InteractionRoot.opuszczenieKolejki");
-            interaction = new FomInteraction(addQueueExitHandle);
-            interaction.addAttributeHandle(NR_KASY, addQueueExitHandle, Integer.class);
-            interaction.addAttributeHandle(NR_KLIENTA, addQueueExitHandle, Integer.class);
-            rtiamb.subscribeInteractionClass(addQueueExitHandle);
+            subscribeWejscieDoKolejki();
 
-            int addQueueEntryHandle = rtiamb.getInteractionClassHandle("InteractionRoot.wejscieDoKolejki");
-            interaction = new FomInteraction(addQueueEntryHandle);
-            interaction.addAttributeHandle(NR_KASY, addQueueEntryHandle, Integer.class);
-            interaction.addAttributeHandle(NR_KLIENTA, addQueueEntryHandle, Integer.class);
-            rtiamb.subscribeInteractionClass(addQueueEntryHandle);
-
-            int addNewCashHandle = rtiamb.getInteractionClassHandle("InteractionRoot.otworzKase");
-            interaction = new FomInteraction(addNewCashHandle);
-            interaction.addAttributeHandle(NR_KASY, addNewCashHandle, Integer.class);
-            rtiamb.subscribeInteractionClass(addNewCashHandle);
-
-            int addCloseCashHandle = rtiamb.getInteractionClassHandle("InteractionRoot.zamknijKase");
-            interaction = new FomInteraction(addCloseCashHandle);
-            interaction.addAttributeHandle(NR_KASY, addCloseCashHandle, Integer.class);
-            rtiamb.subscribeInteractionClass(addCloseCashHandle);
-
-            int addSimulationStartHandle = rtiamb.getInteractionClassHandle("InteractionRoot.startSymulacji");
-            rtiamb.subscribeInteractionClass(addSimulationStartHandle);
-
-            int addSimulationStopHandle = rtiamb.getInteractionClassHandle("InteractionRoot.stopSymulacji");
-            rtiamb.subscribeInteractionClass(addSimulationStopHandle);
-        } catch (NameNotFound | FederateNotExecutionMember | RTIinternalError | AttributeNotDefined | OwnershipAcquisitionPending | InteractionClassNotDefined | SaveInProgress | ConcurrentAccessAttempted | RestoreInProgress | FederateLoggingServiceCalls | ObjectClassNotDefined nameNotFound) {
+            subscribeSimStop();
+            subscribeSimStart();
+        } catch (NameNotFound | FederateNotExecutionMember | AttributeNotDefined | ObjectClassNotDefined | RTIinternalError | InteractionClassNotDefined | SaveInProgress | ConcurrentAccessAttempted | RestoreInProgress | FederateLoggingServiceCalls | OwnershipAcquisitionPending nameNotFound) {
             nameNotFound.printStackTrace();
         }
     }
@@ -117,14 +190,4 @@ public class FederatKasa extends AbstractFederat {
     }
     public void registerObjects() {
     }
-
-    /*@Override
-    public void registerObjects() {
-
-    }
-
-    @Override
-    protected void deleteObjects() {
-
-    }*/
 }

@@ -35,7 +35,7 @@
                            updateCondition="NA" ownership="NoTransfer" sharing="PublishSubscribe"
                            dimensions="NA" transportation="HLAreliable" order="TimeStamp"
                            semantics="NA" />
-                <attribute name="nrObslugiwanegoKlienta" dataType="HLAinteger32BE" updateType="Conditional"
+                <attribute name="dlugoscKolejki" dataType="HLAinteger32BE" updateType="Conditional"
                            updateCondition="NA" ownership="NoTransfer" sharing="PublishSubscribe"
                            dimensions="NA" transportation="HLAreliable" order="TimeStamp"
                            semantics="NA" />
@@ -63,8 +63,6 @@
             <interactionClass name="otworzKase" sharing="PublishSubscribe"
                               dimensions="NA" transportation="HLAreliable" order="Receive"
                               semantics="NA">
-                <parameter name="nrKasy" dataType="HLAinteger32BE"
-                           semantics="NA" />
             </interactionClass>
             <interactionClass name="stopSymulacji" sharing="PublishSubscribe"
                               dimensions="NA" transportation="HLAreliable" order="Receive"
@@ -77,7 +75,7 @@
             <interactionClass name="nowyKlient" sharing="PublishSubscribe"
                               dimensions="NA" transportation="HLAreliable" order="Receive"
                               semantics="NA">
-                <parameter name="nrKlienta" dataType="HLAinteger32BE"
+                <parameter name="czyUprzywilejowany" dataType="HLAboolean"
                            semantics="NA" />
             </interactionClass>
             <interactionClass name="zamknijKase" sharing="PublishSubscribe"
@@ -101,21 +99,19 @@
                            semantics="NA" />
                 <parameter name="nrKasy" dataType="HLAinteger32BE"
                            semantics="NA" />
+                <parameter name="czyUprzywilejowany" dataType="HLAboolean"
+                           semantics="NA" />
             </interactionClass>
             <interactionClass name="obsluzonoKlienta" sharing="PublishSubscribe"
                               dimensions="NA" transportation="HLAreliable" order="Receive"
                               semantics="NA">
-                <parameter name="nrKlienta" dataType="HLAinteger32BE"
-                           semantics="NA" />
-                <parameter name="nrKasy" dataType="HLAinteger32BE"
+                <parameter name="czasObslugi" dataType="HLAfloat64BE"
                            semantics="NA" />
             </interactionClass>
             <interactionClass name="wejscieDoKasy" sharing="PublishSubscribe"
                               dimensions="NA" transportation="HLAreliable" order="Receive"
                               semantics="NA">
-                <parameter name="nrKlienta" dataType="HLAinteger32BE"
-                           semantics="NA" />
-                <parameter name="nrKasy" dataType="HLAinteger32BE"
+                <parameter name="czasCzekaniaNaObsluge" dataType="HLAfloat64BE"
                            semantics="NA" />
             </interactionClass>
         </interactionClass>
