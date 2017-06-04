@@ -32,8 +32,6 @@ public class Ambasador extends NullFederateAmbassador {
 
     public FomInteraction stopSymulacjiClassHandle;
     public FomInteraction startSymulacjiClassHandle;
-    public AFomEntity stopClassHandle;
-    public AFomEntity startClassHandle;
     public FomObject kasaClassHandle;
     public FomObject klientClassHandle;
     public FomInteraction rozpoczecieObslugiClassHandle;

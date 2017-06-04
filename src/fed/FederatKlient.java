@@ -200,10 +200,10 @@ public class FederatKlient extends AbstractFederat {
             interaction.addAttributeHandle(NR_KLIENTA, addQueueEntryHandle, Integer.class);
             rtiamb.subscribeInteractionClass(addCashEntryHandle);
             */
-            fedamb.startSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_START_SIM));
-            rtiamb.subscribeInteractionClass(fedamb.startSymulacjiClassHandle.getClassHandle());
+            fedamb.stopSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_STOP_SIM));
+            rtiamb.subscribeInteractionClass(fedamb.stopSymulacjiClassHandle.getClassHandle());
 
-            fedamb.startSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_STOP_SIM));
+            fedamb.startSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_START_SIM));
             rtiamb.subscribeInteractionClass(fedamb.startSymulacjiClassHandle.getClassHandle());
         } catch
                 (NameNotFound | FederateNotExecutionMember | RTIinternalError | InteractionClassNotDefined | SaveInProgress | ConcurrentAccessAttempted | RestoreInProgress | FederateLoggingServiceCalls | OwnershipAcquisitionPending | ObjectClassNotDefined | AttributeNotDefined

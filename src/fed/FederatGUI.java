@@ -81,7 +81,7 @@ public class FederatGUI extends AbstractFederat {
                 SuppliedParameters parameters;
                 try {
                     parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
-                    rtiamb.sendInteraction(fedamb.stopClassHandle.getClassHandle(), parameters, generateTag());
+                    rtiamb.sendInteraction(fedamb.stopSymulacjiClassHandle.getClassHandle(), parameters, generateTag());
                 } catch (RTIexception e1) {
                     log("Couldn't send \"stop\" interaction, because: " + e1.getMessage());
                 }
@@ -135,7 +135,7 @@ public class FederatGUI extends AbstractFederat {
                 SuppliedParameters parameters;
                 try {
                     parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
-                    rtiamb.sendInteraction(fedamb.startClassHandle.getClassHandle(), parameters, generateTag());
+                    rtiamb.sendInteraction(fedamb.startSymulacjiClassHandle.getClassHandle(), parameters, generateTag());
                 } catch (RTIexception e1) {
                     log("Couldn't send \"start\" interaction, because: " + e1.getMessage());
                 }
@@ -162,7 +162,7 @@ public class FederatGUI extends AbstractFederat {
             SuppliedParameters parameters;
             try {
                 parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
-                rtiamb.sendInteraction(fedamb.stopClassHandle.getClassHandle(), parameters, generateTag());
+                rtiamb.sendInteraction(fedamb.stopSymulacjiClassHandle.getClassHandle(), parameters, generateTag());
             } catch (RTIexception e) {
                 log("Couldn't send \"stop\" interaction, because: " + e.getMessage());
             }
@@ -335,11 +335,14 @@ public class FederatGUI extends AbstractFederat {
                     rtiamb.getInteractionClassHandle("HLAinteractionRoot.zamknijKase"));
             rtiamb.publishInteractionClass(fedamb.closeTheMarketClassHandle.getClassHandle());
 
-            fedamb.stopClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_STOP_SIM));
-            rtiamb.publishInteractionClass(fedamb.stopClassHandle.getClassHandle());
+            fedamb.stopSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_STOP_SIM));
+            rtiamb.publishInteractionClass(fedamb.stopSymulacjiClassHandle.getClassHandle());
 
-            fedamb.startClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_START_SIM));
-            rtiamb.publishInteractionClass(fedamb.startClassHandle.getClassHandle());
+            fedamb.startSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_START_SIM));
+            rtiamb.publishInteractionClass(fedamb.startSymulacjiClassHandle.getClassHandle());
+
+            /*fedamb.stopClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_START_SIM));
+            rtiamb.subscribeInteractionClass(fedamb.stopClassHandle.getClassHandle());*/
 
 
         } catch (NameNotFound | FederateNotExecutionMember | SaveInProgress | RTIinternalError | ConcurrentAccessAttempted | ObjectClassNotDefined | RestoreInProgress | InteractionClassNotDefined | FederateLoggingServiceCalls | AttributeNotDefined nameNotFound) {
