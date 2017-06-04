@@ -131,7 +131,7 @@ public abstract class AbstractFederat {
             log("Didn't create federation, it already existed");
         } catch (MalformedURLException urle) {
             log("Exception processing fom: " + urle.getMessage());
-            urle.printStackTrace();
+            //urle.printStackTrace();
         } catch (ConcurrentAccessAttempted | RTIinternalError | CouldNotOpenFED | ErrorReadingFED concurrentAccessAttempted) {
             concurrentAccessAttempted.printStackTrace();
         }

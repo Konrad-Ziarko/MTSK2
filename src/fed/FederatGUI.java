@@ -39,7 +39,6 @@ public class FederatGUI extends AbstractFederat {
     private static final String UPRZYWILEJOWANY = "czyUprzywilejowany";
     private static final String CZAS_ZAKUPOW = "rodzajZalatwianejSprawy";
 
-    private boolean shouldProceed = false;
     private Ambasador fedAmbassador;
     private Map<Integer, Integer> checkoutObjectHandleToClassHandleMap;
     private Map<Integer, Integer> customerObjectHandleToClassHandleMap;
@@ -50,8 +49,15 @@ public class FederatGUI extends AbstractFederat {
 
     private boolean shouldSendStartInteraction = false;
     private boolean shouldSendStopInteraction = false;
-    private boolean shouldSendCloseTheMarketInteraction = false;
 
+    public void log(String str){
+        try{
+            textArea.append(str+"\n");
+
+        }catch (NullPointerException e){
+            System.out.println(str);
+        }
+    }
 
     public FederatGUI() {
         checkoutObjectHandleToClassHandleMap = new HashMap<>();
@@ -74,21 +80,14 @@ public class FederatGUI extends AbstractFederat {
             }
         });
         stop = new JButton("Stop");
-        stop.setEnabled(true);
+        stop.setEnabled(false);
         stop.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                log("Sending \"stop\" interaction");
-                SuppliedParameters parameters;
-                try {
-                    parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
-                    rtiamb.sendInteraction(fedamb.stopSymulacjiClassHandle.getClassHandle(), parameters, generateTag());
-                } catch (RTIexception e1) {
-                    log("Couldn't send \"stop\" interaction, because: " + e1.getMessage());
-                }
+                shouldSendStopInteraction = true;
             }
         });
         textArea = new JTextArea();
-        textArea.setEnabled(false);
+        textArea.setEnabled(true);
 
         JPanel panel = new JPanel();
 
@@ -117,71 +116,61 @@ public class FederatGUI extends AbstractFederat {
     }
 
     public void runFederate() {
+        createWindow();
         createFederation();
         fedamb = prepareFederationAmbassador();
         joinFederation(federateName);
         registerSyncPoint();
-
-        createWindow();
-
         achieveSyncPoint();
         enableTimePolicy();
         publishAndSubscribe();
         registerObjects();
 
         while (fedamb.running) {
-            if (shouldSendStartInteraction) {
-                log("Sending \"start\" interaction");
-                SuppliedParameters parameters;
-                try {
-                    parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
-                    rtiamb.sendInteraction(fedamb.startSymulacjiClassHandle.getClassHandle(), parameters, generateTag());
-                } catch (RTIexception e1) {
-                    log("Couldn't send \"start\" interaction, because: " + e1.getMessage());
-                }
-                shouldSendStartInteraction = false;
-            }
+            if (shouldSendStartInteraction)
+                sendStartInteraction();
+            if (shouldSendStopInteraction)
+                sendStopFederationInteraction();
             if (fedamb.isSimulationStarted()) {
-                textArea.append("dupa\n");
+                //textArea.append("dupa\n");
                 //log("dupa\n");
             }
             advanceTime(timeStep);
-
             try {
                 rtiamb.tick();
             } catch (RTIinternalError | ConcurrentAccessAttempted rtIinternalError) {
                 rtIinternalError.printStackTrace();
             }
         }
-        optionallySendStopFederationInteraction();
+        sendStopFederationInteraction();
     }
 
-    private void optionallySendStopFederationInteraction() {
-        if (shouldSendStopInteraction) {
-            log("Sending \"stop\" interaction");
-            SuppliedParameters parameters;
-            try {
-                parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
-                rtiamb.sendInteraction(fedamb.stopSymulacjiClassHandle.getClassHandle(), parameters, generateTag());
-            } catch (RTIexception e) {
-                log("Couldn't send \"stop\" interaction, because: " + e.getMessage());
-            }
-            shouldSendStopInteraction = false;
+    private void sendStartInteraction() {
+        log("Sending \"start\" interaction");
+        SuppliedParameters parameters;
+        try {
+            parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
+            rtiamb.sendInteraction(fedamb.startSymulacjiClassHandle.getClassHandle(), parameters, generateTag());
+            start.setEnabled(false);
+            stop.setEnabled(true);
+        } catch (RTIexception e1) {
+            log("Couldn't send \"start\" interaction, because: " + e1.getMessage());
         }
+        shouldSendStartInteraction = false;
     }
 
-    private void optionallySendCloseTheMarketInteraction() {
-        if (shouldSendCloseTheMarketInteraction) {
-            log("Sending \"close market\" interaction");
-            SuppliedParameters parameters;
-            try {
-                parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
-                rtiamb.sendInteraction(fedamb.closeTheMarketClassHandle.getClassHandle(), parameters, generateTag());
-            } catch (RTIexception e) {
-                log("Couldn't send \"close the market\" interaction, because: " + e.getMessage());
-            }
-            shouldSendCloseTheMarketInteraction = false;
+    private void sendStopFederationInteraction() {
+        log("Sending \"stop\" interaction");
+        SuppliedParameters parameters;
+        try {
+            parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
+            rtiamb.sendInteraction(fedamb.stopSymulacjiClassHandle.getClassHandle(), parameters, generateTag());
+            start.setEnabled(true);
+            stop.setEnabled(false);
+        } catch (RTIexception e) {
+            log("Couldn't send \"stop\" interaction, because: " + e.getMessage());
         }
+        shouldSendStopInteraction = false;
     }
 
     public void cleanUpFederate() throws RTIexception {
@@ -335,14 +324,13 @@ public class FederatGUI extends AbstractFederat {
                     rtiamb.getInteractionClassHandle("HLAinteractionRoot.zamknijKase"));
             rtiamb.publishInteractionClass(fedamb.closeTheMarketClassHandle.getClassHandle());
 
+
+
             fedamb.stopSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_STOP_SIM));
             rtiamb.publishInteractionClass(fedamb.stopSymulacjiClassHandle.getClassHandle());
 
             fedamb.startSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_START_SIM));
             rtiamb.publishInteractionClass(fedamb.startSymulacjiClassHandle.getClassHandle());
-
-            /*fedamb.stopClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_START_SIM));
-            rtiamb.subscribeInteractionClass(fedamb.stopClassHandle.getClassHandle());*/
 
 
         } catch (NameNotFound | FederateNotExecutionMember | SaveInProgress | RTIinternalError | ConcurrentAccessAttempted | ObjectClassNotDefined | RestoreInProgress | InteractionClassNotDefined | FederateLoggingServiceCalls | AttributeNotDefined nameNotFound) {
@@ -358,21 +346,5 @@ public class FederatGUI extends AbstractFederat {
 
     protected void deleteObjects() {
 
-    }
-
-    public void proceed() {
-        this.shouldProceed = true;
-    }
-
-    public boolean shouldProceed() {
-        return shouldProceed;
-    }
-
-    public void scheduleCloseTheMarketInteraction() {
-        shouldSendCloseTheMarketInteraction = true;
-    }
-
-    public void sendStopInteraction() {
-        shouldSendStopInteraction = true;
     }
 }

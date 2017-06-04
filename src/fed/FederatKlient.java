@@ -45,7 +45,7 @@ public class FederatKlient extends AbstractFederat {
             if (fedamb.isSimulationStarted()) {
                 //double timeToAdvance = fedamb.federateTime + timeStep;
                 double federateTime = getFederateAmbassador().getFederateTime();
-
+                log("dupa");
                 if (rand.nextFloat() < generatingChance)
                     createAndRegisterCustomer(federateTime);
                 updateCustomersWithNewFederateTime(federateTime);
@@ -82,16 +82,14 @@ public class FederatKlient extends AbstractFederat {
                         }
                     }
                 });
-        fedAmbassador.registerInteractionReceivedListener((int interactionClass, ReceivedInteraction theInteraction,
-                                                           byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) -> {
+        fedAmbassador.registerInteractionReceivedListener((int interactionClass, ReceivedInteraction theInteraction, byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) -> {
+            if (interactionClass == fedamb.startSymulacjiClassHandle.getClassHandle()) {
+                log("Start interaction received");
+                fedamb.setSimulationStarted(true);
+            }else
             if (interactionClass == fedamb.stopSymulacjiClassHandle.getClassHandle()) {
                 log("Stop interaction received");
                 fedamb.running = false;
-            }
-        });
-        fedAmbassador.registerInteractionReceivedListener((int interactionClass, ReceivedInteraction theInteraction, byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) -> {
-            if (interactionClass == fedamb.startSymulacjiClassHandle.getClassHandle()) {
-                fedamb.setSimulationStarted(true);
             }
         });
         return fedAmbassador;
@@ -153,11 +151,11 @@ public class FederatKlient extends AbstractFederat {
 
     public void publishAndSubscribe() {
         try {
-            int addQueueEntryHandle = rtiamb.getInteractionClassHandle(HLA_WEJSCIE_KLIENT);
+            /*int addQueueEntryHandle = rtiamb.getInteractionClassHandle(HLA_WEJSCIE_KLIENT);
             fedamb.wejscieDoKolejkiClassHandle = new FomInteraction(addQueueEntryHandle);
             fedamb.wejscieDoKolejkiClassHandle.addAttributeHandle(NR_KASY, addQueueEntryHandle, Integer.class);
             fedamb.wejscieDoKolejkiClassHandle.addAttributeHandle(NR_KLIENTA, addQueueEntryHandle, Integer.class);
-            rtiamb.publishInteractionClass(fedamb.wejscieDoKolejkiClassHandle.getClassHandle());
+            rtiamb.publishInteractionClass(fedamb.wejscieDoKolejkiClassHandle.getClassHandle());*/
 
             /*int addClientHandle = rtiamb.getObjectClassHandle(HLA_KLIENT);
             klientHandle = new FomObject(addClientHandle);
