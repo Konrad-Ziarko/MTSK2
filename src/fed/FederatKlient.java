@@ -22,7 +22,6 @@ public class FederatKlient extends AbstractFederat {
 
     private boolean shouldGeneratePrivileged = false;
 
-    private List<Klient> waitingCustomers = new ArrayList<>();
     private List<Klient> allCustomers = new ArrayList<>();
     private Map<Integer, Integer> queuesSizes = new HashMap<>();
     private Map<Integer, Klient> customersHandlesToObjects = new HashMap<>();
@@ -127,92 +126,33 @@ public class FederatKlient extends AbstractFederat {
     }
 
     private void updateCustomersWithNewFederateTime(double newFederateTime) {
-
         allCustomers.forEach(customer -> {
            customer.updateWithNewFederateTime(newFederateTime);
         });
-        submitNewTask(()-> {
-            Map<Klient, Integer> tmp = new HashMap<>();
-            customersObjectsToHandles.forEach((klient, integer) -> {
-                boolean b = optionallySendCustomerLeftQueue(klient, customersObjectsToHandles.get(klient), newFederateTime);
-                if (b) {
-                    tmp.put(klient, integer);
-                    customersHandlesToObjects.remove(customersObjectsToHandles.get(klient));
-                }
-            });
-            tmp.forEach((klient, integer) -> {
-                customersObjectsToHandles.remove(integer);
-            });
-        });
         allCustomers.forEach(customer ->{
             submitNewTask(()->{
-                optionallySendQueueEnteredInteraction(customer, getShortestQueue(), newFederateTime);
+                optionallySendQueueEnteredInteraction(customer, getShortestQueue());
             });
         });
-
-        waitingCustomers.forEach(klient -> {
-            klient.updateWithNewFederateTime(newFederateTime);
-        });
-        Iterator<Klient> entry = waitingCustomers.iterator();
-        while (entry.hasNext()){
-            Klient k = entry.next();
-            if (k.hasFinishedWaiting){
-                k.oldFederateTime = newFederateTime;
-                k.hasEntered = true;
-                allCustomers.add(k);
-                entry.remove();
-            }
-        }
     }
 
-    private void optionallySendQueueEnteredInteraction(Klient customer, Optional<Entry<Integer, Integer>> min, double newFederateTime) {
+    private void optionallySendQueueEnteredInteraction(Klient customer, Optional<Entry<Integer, Integer>> min) {
         min.ifPresent(entry -> {
-            log("Customer " + customer + " entering queue in checkout " + entry.getKey());
+            log("Customer " + customersObjectsToHandles.get(customer) + " entering queue in checkout " + entry.getKey());
             entry.setValue(entry.getValue() + 1);
             customer.queueId = entry.getKey();
-            customer.oldFederateTime = newFederateTime;
             sendQueueEnteredInteraction(customersObjectsToHandles.get(customer), entry.getKey(), customer.isPrivileged());
             this.allCustomers.remove(customer);
         });
-    }
-
-    private boolean optionallySendCustomerLeftQueue(Klient customer, int handle, double federateTime) {
-        if (customer.hasEntered && customer.checkImpatience(federateTime)){
-            SuppliedParameters parameters;
-            try {
-                queuesSizes.put(customer.queueId, queuesSizes.get(customer.queueId)-1);
-                //customersObjectsToHandles.remove(customer);
-                //customersHandlesToObjects.remove(handle);
-                log("Customer " + handle + " left queue in checkout " + customer.queueId);
-                customer.oldFederateTime = federateTime;
-                customer.queueId = -1;
-                customer.wantsToChangeQueue = false;
-                customer.changedQueue = true;
-                customer.hasEntered = false;
-                //allCustomers.add(customer);
-                waitingCustomers.add(customer);
-                parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
-                parameters.add(fedamb.opuszczenieKolejkiClassHandle.getHandleFor(NR_KLIENTA),
-                        EncodingHelpers.encodeInt(handle));
-                rtiamb.sendInteraction(fedamb.opuszczenieKolejkiClassHandle.getClassHandle(), parameters, generateTag());
-            } catch (RTIexception e) {
-                log("Couldn't send customer left queue interaction, because: " + e.getMessage());
-            }
-            return true;
-        }
-        return false;
     }
 
     private void sendQueueEnteredInteraction(Integer customerObjectId, Integer checkoutObjectId, boolean privileged) {
         SuppliedParameters parameters;
         try {
             parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
-            parameters.add(fedamb.wejscieDoKolejkiClassHandle.getHandleFor(NR_KLIENTA),
-                    EncodingHelpers.encodeInt(customerObjectId));
-            parameters.add(fedamb.wejscieDoKolejkiClassHandle.getHandleFor(NR_KASY),
-                    EncodingHelpers.encodeInt(checkoutObjectId));
-            parameters.add(fedamb.wejscieDoKolejkiClassHandle.getHandleFor(UPRZYWILEJOWANY),
-                    EncodingHelpers.encodeBoolean(privileged));
+            parameters.add(fedamb.wejscieDoKolejkiClassHandle.getHandleFor(NR_KASY), EncodingHelpers.encodeInt(checkoutObjectId));
+            parameters.add(fedamb.wejscieDoKolejkiClassHandle.getHandleFor(NR_KLIENTA), EncodingHelpers.encodeInt(customerObjectId));
+            parameters.add(fedamb.wejscieDoKolejkiClassHandle.getHandleFor(UPRZYWILEJOWANY), EncodingHelpers.encodeBoolean(privileged));
             rtiamb.sendInteraction(fedamb.wejscieDoKolejkiClassHandle.getClassHandle(), parameters, generateTag());
         } catch (RTIexception e) {
             log("Couldn't send queue entered interaction, because: " + e.getMessage());
@@ -226,8 +166,7 @@ public class FederatKlient extends AbstractFederat {
     private void createAndRegisterCustomer(double oldFederateTime, boolean isPrivileged) {
         Klient customer = new Klient(oldFederateTime, rand.nextInt(MAX_SERVICE_TIME - MIN_SERVICE_TIME + 1) + MIN_SERVICE_TIME);
         customer.setPrivileged(isPrivileged);
-        //allCustomers.add(customer);
-        waitingCustomers.add(customer);
+        allCustomers.add(customer);
         try {
             int customerHandle = registerRtiCustomer(customer);
             log("New customer " + customerHandle + " enters the bank: " + customer + " U=" + customer.isPrivileged());
@@ -253,7 +192,6 @@ public class FederatKlient extends AbstractFederat {
             subscribeKasa();
             publishKlient();
 
-            publishOpuszczenieKolejki();
             publishWejscieDoKolejki();
 
             subscribeNowyKlient();

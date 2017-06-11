@@ -349,13 +349,15 @@ public abstract class AbstractFederat {
     public void publishWejscieDoKasy() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
         fedamb.wejscieDoKasyClassHandle = prepareFomInteraction(
                 rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KASY),
-                new FomObjectDefinition<>(CZAS_CZEKANIA_NA_OBSLUGE, Float.class));
+                new FomObjectDefinition<>(CZAS_CZEKANIA_NA_OBSLUGE, Float.class),
+                new FomObjectDefinition<>(NR_KLIENTA, Integer.class));
         rtiamb.publishInteractionClass(fedamb.wejscieDoKasyClassHandle.getClassHandle());
     }
     public void subscribeWejscieDoKasy() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ObjectClassNotDefined, ConcurrentAccessAttempted, AttributeNotDefined, RestoreInProgress, SaveInProgress, InteractionClassNotDefined, FederateLoggingServiceCalls {
         fedamb.wejscieDoKasyClassHandle = prepareFomInteraction(
                 rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KASY),
-                new FomObjectDefinition<>(CZAS_CZEKANIA_NA_OBSLUGE, Float.class));
+                new FomObjectDefinition<>(CZAS_CZEKANIA_NA_OBSLUGE, Float.class),
+                new FomObjectDefinition<>(NR_KLIENTA, Integer.class));
         rtiamb.subscribeInteractionClass(fedamb.wejscieDoKasyClassHandle.getClassHandle());
     }
 

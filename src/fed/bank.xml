@@ -115,6 +115,8 @@
                               semantics="NA">
                 <parameter name="czasCzekaniaNaObsluge" dataType="HLAfloat64BE"
                            semantics="NA" />
+                <parameter name="nrKlienta" dataType="HLAinteger32BE"
+                           semantics="NA" />
             </interactionClass>
         </interactionClass>
     </interactions>

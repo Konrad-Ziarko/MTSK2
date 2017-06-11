@@ -9,13 +9,17 @@ import java.util.function.Consumer;
  * Created by konrad on 5/29/17.
  */
 public class Kasa {
-    private int checkoutId;
-    private List<Klient> customersQueue;
+    private Integer checkoutId;
+    public List<Klient> customersQueue;
     private Klient buyingCustomer;
 
     public Kasa(int checkoutId) {
         customersQueue = new LinkedList<>();
         this.checkoutId = checkoutId;
+    }
+
+    public void removeCustomerFromQueue(Integer k){
+
     }
 
     public int getQueueSize() {
