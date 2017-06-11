@@ -42,8 +42,7 @@ public class Kasa {
         return buyingCustomer;
     }
 
-    public void updateCurrentBuyingCustomer(double federateTime,
-                                            BiConsumer<Klient, Double> customerStartedBuyingAction) {
+    public void updateCurrentBuyingCustomer(double federateTime, BiConsumer<Klient, Double> customerStartedBuyingAction) {
         if (buyingCustomer == null && customersQueue.size() > 0) {
             buyingCustomer = customersQueue.remove(0);
             double queueWaitingTime = federateTime - buyingCustomer.getOldFederateTime();

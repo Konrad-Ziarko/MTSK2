@@ -88,7 +88,29 @@ public class Ambasador extends NullFederateAmbassador {
     }
 
     public void receiveInteraction(int interactionClass, ReceivedInteraction theInteraction, byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) {
-        log("Received interaction of class " + interactionClass);
+        String intType = "";
+        if (wejscieDoKolejkiClassHandle!=null && interactionClass == wejscieDoKolejkiClassHandle.getClassHandle())
+            intType = "wejscie do kolejki";
+        else if (obsluzonoKlientaClassHandle!=null &&interactionClass == obsluzonoKlientaClassHandle.getClassHandle())
+            intType = "obsluzonoKlienta";
+        else if (startSymulacjiClassHandle!=null &&interactionClass == startSymulacjiClassHandle.getClassHandle())
+            intType = "startSymulacji";
+        else if (stopSymulacjiClassHandle!=null &&interactionClass == stopSymulacjiClassHandle.getClassHandle())
+            intType = "stopSymulacji";
+        else if (nowyKlientClassHandle!=null &&interactionClass == nowyKlientClassHandle.getClassHandle())
+            intType = "nowyKlient";
+        else if (opuszczenieKolejkiClassHandle!=null &&interactionClass == opuszczenieKolejkiClassHandle.getClassHandle())
+            intType = "opuszczenieKolejki";
+        else if (wejscieDoKasyClassHandle!=null &&interactionClass == wejscieDoKasyClassHandle.getClassHandle())
+            intType = "wejscieDoKasy";
+        else if (otworzKaseClassHandle!=null &&interactionClass == otworzKaseClassHandle.getClassHandle())
+            intType = "otworzKase";
+        else if (zamknijKaseClassHandle!=null &&interactionClass == zamknijKaseClassHandle.getClassHandle())
+            intType = "zamknijKase";
+
+
+        log("Received interaction of class " + intType + " id:"+ interactionClass);
+
         interactionReceivedListeners.forEach(listener -> {
             listener.notifyInteractionReceived(interactionClass, theInteraction, tag, theTime, eventRetractionHandle);
         });

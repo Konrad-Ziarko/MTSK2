@@ -3,7 +3,7 @@ package fed;
 import amb.Ambasador;
 import fom.FomInteraction;
 import fom.FomObject;
-import fom.Pair;
+import fom.FomObjectDefinition;
 import hla.rti.*;
 import hla.rti.jlc.RtiFactoryFactory;
 import org.portico.impl.hla13.types.DoubleTime;
@@ -53,8 +53,8 @@ public abstract class AbstractFederat {
     protected static final String HLA_START_SIM = "HLAinteractionRoot.startSymulacji";
     protected static final String HLA_NOWY_KLIENT = "HLAinteractionRoot.nowyKlient";
 
-    protected int MAX_SERVICE_TIME = 100;
-    protected int MIN_SERVICE_TIME = 25;
+    protected int MAX_SERVICE_TIME = 800;
+    protected int MIN_SERVICE_TIME = 400;
 
     //
     public static final String FOM_PATH = "src/fed/bank.xml";
@@ -247,13 +247,13 @@ public abstract class AbstractFederat {
     }
 
     public FomObject prepareFomObject(int classHandle,
-                                      @SuppressWarnings("unchecked") Pair<String, Class<?>>... attributeNamesAndEncodingFunctions) {
+                                      @SuppressWarnings("unchecked") FomObjectDefinition<String, Class<?>>... attributeNamesAndEncodingFunctions) {
         FomObject object = new FomObject(classHandle);
         iterateArrayWhileDoing(attributeNamesAndEncodingFunctions, pair -> {
             try {
-                object.addAttributeHandle(pair.getA(),
-                        rtiamb.getAttributeHandle(pair.getA(), classHandle),
-                        pair.getB());
+                object.addAttributeHandle(pair.getT1(),
+                        rtiamb.getAttributeHandle(pair.getT1(), classHandle),
+                        pair.getT2());
             } catch (Exception e) {
                 log(e.getMessage());
             }
@@ -262,13 +262,13 @@ public abstract class AbstractFederat {
     }
 
     public FomInteraction prepareFomInteraction(int classHandle,
-                                                @SuppressWarnings("unchecked") Pair<String, Class<?>>... parameterNamesAndEncodingFunctions) {
+                                                @SuppressWarnings("unchecked") FomObjectDefinition<String, Class<?>>... parameterNamesAndEncodingFunctions) {
         FomInteraction interaction = new FomInteraction(classHandle);
         iterateArrayWhileDoing(parameterNamesAndEncodingFunctions, pair -> {
             try {
-                interaction.addAttributeHandle(pair.getA(),
-                        rtiamb.getParameterHandle(pair.getA(), classHandle),
-                        pair.getB());
+                interaction.addAttributeHandle(pair.getT1(),
+                        rtiamb.getParameterHandle(pair.getT1(), classHandle),
+                        pair.getT2());
             } catch (Exception e) {
                 log(e.getMessage());
             }
@@ -284,130 +284,157 @@ public abstract class AbstractFederat {
 
 
 
+    public void publishOpuszczenieKolejki() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
+        fedamb.wejscieDoKolejkiClassHandle = prepareFomInteraction(
+                rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KOLEJKI),
+                new FomObjectDefinition<String, Class<?>>(NR_KLIENTA, Integer.class));
+        rtiamb.publishInteractionClass(fedamb.opuszczenieKolejkiClassHandle.getClassHandle());
+    }
+    public void subscribeOpuszczenieKolejki() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
+        fedamb.wejscieDoKolejkiClassHandle = prepareFomInteraction(
+                rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KOLEJKI),
+                new FomObjectDefinition<String, Class<?>>(NR_KLIENTA, Integer.class));
+        rtiamb.subscribeInteractionClass(fedamb.opuszczenieKolejkiClassHandle.getClassHandle());
+    }
 
-    public void publishSimStop() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
-        fedamb.stopSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_STOP_SIM));
-        rtiamb.publishInteractionClass(fedamb.stopSymulacjiClassHandle.getClassHandle());
+    public void subscribeStatystyka() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ObjectClassNotDefined, ConcurrentAccessAttempted, AttributeNotDefined, RestoreInProgress, SaveInProgress {
+        fedamb.statisticsClassHandle = prepareFomObject(rtiamb.getObjectClassHandle(HLA_STATYSTYKA),
+                new FomObjectDefinition<String, Class<?>>("sredniCzasObslugi", Double.class),
+                new FomObjectDefinition<String, Class<?>>("sredniCzasOczekiwania", Double.class),
+                new FomObjectDefinition<String, Class<?>>("sredniaDlugoscKolejki", Double.class));
+        rtiamb.subscribeObjectClassAttributes(fedamb.statisticsClassHandle.getClassHandle(), fedamb.statisticsClassHandle.createAttributeHandleSet());
+    }
+
+    public void publishNowyKlient() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
+        fedamb.nowyKlientClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_NOWY_KLIENT),
+                new FomObjectDefinition<String, Class<?>>(UPRZYWILEJOWANY, Boolean.class) );
+        rtiamb.publishInteractionClass(fedamb.nowyKlientClassHandle.getClassHandle());
+    }
+    public void subscribeNowyKlient() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
+        fedamb.nowyKlientClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_NOWY_KLIENT),
+                new FomObjectDefinition<String, Class<?>>(UPRZYWILEJOWANY, Boolean.class));
+        rtiamb.subscribeInteractionClass(fedamb.nowyKlientClassHandle.getClassHandle());
     }
 
     public void publishSimStart() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
         fedamb.startSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_START_SIM));
         rtiamb.publishInteractionClass(fedamb.startSymulacjiClassHandle.getClassHandle());
     }
-
-    public void publishNowyKlient() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
-        fedamb.nowyKlientClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_NOWY_KLIENT),
-                new Pair<String, Class<?>>(UPRZYWILEJOWANY, Boolean.class) );
-        rtiamb.publishInteractionClass(fedamb.nowyKlientClassHandle.getClassHandle());
-    }
-
-    public void publishOtworzKase() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
-        fedamb.otworzKaseClassHandle = prepareFomInteraction(
-                rtiamb.getInteractionClassHandle(HLA_OTWORZ_KASE),
-                new Pair<String, Class<?>>(UPRZYWILEJOWANY, Integer.class));
-        rtiamb.publishInteractionClass(fedamb.otworzKaseClassHandle.getClassHandle());
-    }
-
-    public void subscribeStatystyka() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ObjectClassNotDefined, ConcurrentAccessAttempted, AttributeNotDefined, RestoreInProgress, SaveInProgress {
-        fedamb.statisticsClassHandle = prepareFomObject(rtiamb.getObjectClassHandle(HLA_STATYSTYKA),
-                new Pair<String, Class<?>>("sredniCzasObslugi", Double.class),
-                new Pair<String, Class<?>>("sredniCzasOczekiwania", Double.class),
-                new Pair<String, Class<?>>("sredniaDlugoscKolejki", Double.class));
-        rtiamb.subscribeObjectClassAttributes(fedamb.statisticsClassHandle.getClassHandle(), fedamb.statisticsClassHandle.createAttributeHandleSet());
-    }
-
-    public void subscribeNowyKlient() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
-        fedamb.nowyKlientClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_NOWY_KLIENT),
-                new Pair<String, Class<?>>(UPRZYWILEJOWANY, Boolean.class));
-        rtiamb.subscribeInteractionClass(fedamb.nowyKlientClassHandle.getClassHandle());
-    }
-
-    public void subscribeKasa() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ObjectClassNotDefined, ConcurrentAccessAttempted, AttributeNotDefined, RestoreInProgress, SaveInProgress {
-        fedamb.kasaClassHandle = prepareFomObject(rtiamb.getObjectClassHandle(HLA_KASA),
-                new Pair<String, Class<?>>(NR_KASY, Integer.class),
-                new Pair<String, Class<?>>(DLUGOSC_KOLEJKI, Integer.class));
-        rtiamb.subscribeObjectClassAttributes(fedamb.kasaClassHandle.getClassHandle(), fedamb.kasaClassHandle.createAttributeHandleSet());
-    }
-
     public void subscribeSimStart() throws RestoreInProgress, ConcurrentAccessAttempted, InteractionClassNotDefined, SaveInProgress, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, NameNotFound {
         fedamb.startSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_START_SIM));
         rtiamb.subscribeInteractionClass(fedamb.startSymulacjiClassHandle.getClassHandle());
     }
-
+    public void publishSimStop() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
+        fedamb.stopSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_STOP_SIM));
+        rtiamb.publishInteractionClass(fedamb.stopSymulacjiClassHandle.getClassHandle());
+    }
     public void subscribeSimStop() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
         fedamb.stopSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_STOP_SIM));
         rtiamb.subscribeInteractionClass(fedamb.stopSymulacjiClassHandle.getClassHandle());
     }
 
-    public void subscribeWejscieDoKolejki() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
-        fedamb.wejscieDoKolejkiClassHandle = prepareFomInteraction(
-                rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KOLEJKI),
-                new Pair<String, Class<?>>(NR_KLIENTA, Integer.class),
-                new Pair<String, Class<?>>(NR_KASY, Integer.class),
-                new Pair<String, Class<?>>(UPRZYWILEJOWANY, Boolean.class));
-        rtiamb.subscribeInteractionClass(fedamb.wejscieDoKolejkiClassHandle.getClassHandle());
-    }
     public void publishWejscieDoKolejki() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
         fedamb.wejscieDoKolejkiClassHandle = prepareFomInteraction(
                 rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KOLEJKI),
-                new Pair<String, Class<?>>(NR_KLIENTA, Integer.class),
-                new Pair<String, Class<?>>(NR_KASY, Integer.class),
-                new Pair<String, Class<?>>(UPRZYWILEJOWANY, Boolean.class));
+                new FomObjectDefinition<String, Class<?>>(NR_KLIENTA, Integer.class),
+                new FomObjectDefinition<String, Class<?>>(NR_KASY, Integer.class),
+                new FomObjectDefinition<String, Class<?>>(UPRZYWILEJOWANY, Boolean.class));
         rtiamb.publishInteractionClass(fedamb.wejscieDoKolejkiClassHandle.getClassHandle());
     }
+    public void subscribeWejscieDoKolejki() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
+        fedamb.wejscieDoKolejkiClassHandle = prepareFomInteraction(
+                rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KOLEJKI),
+                new FomObjectDefinition<String, Class<?>>(NR_KLIENTA, Integer.class),
+                new FomObjectDefinition<String, Class<?>>(NR_KASY, Integer.class),
+                new FomObjectDefinition<String, Class<?>>(UPRZYWILEJOWANY, Boolean.class));
+        rtiamb.subscribeInteractionClass(fedamb.wejscieDoKolejkiClassHandle.getClassHandle());
+    }
+
     public void publishWejscieDoKasy() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
         fedamb.wejscieDoKasyClassHandle = prepareFomInteraction(
                 rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KASY),
-                new Pair<String, Class<?>>(CZAS_CZEKANIA_NA_OBSLUGE, Float.class));
+                new FomObjectDefinition<String, Class<?>>(CZAS_CZEKANIA_NA_OBSLUGE, Float.class));
         rtiamb.publishInteractionClass(fedamb.wejscieDoKasyClassHandle.getClassHandle());
+    }
+    public void subscribeWejscieDoKasy() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ObjectClassNotDefined, ConcurrentAccessAttempted, AttributeNotDefined, RestoreInProgress, SaveInProgress, InteractionClassNotDefined, FederateLoggingServiceCalls {
+        fedamb.wejscieDoKasyClassHandle = prepareFomInteraction(
+                rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KASY),
+                new FomObjectDefinition<String, Class<?>>(CZAS_CZEKANIA_NA_OBSLUGE, Float.class));
+        rtiamb.subscribeInteractionClass(fedamb.wejscieDoKasyClassHandle.getClassHandle());
     }
 
     public void publishObsluzonoKlienta() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
         fedamb.obsluzonoKlientaClassHandle = prepareFomInteraction(
                 rtiamb.getInteractionClassHandle(HLA_OBSLUZONO_KLIENTA),
-                new Pair<String, Class<?>>(CZAS_OBSLUGI, Float.class));
+                new FomObjectDefinition<String, Class<?>>(CZAS_OBSLUGI, Float.class),
+                new FomObjectDefinition<String, Class<?>>(NR_KLIENTA, Integer.class));
+
         rtiamb.publishInteractionClass(fedamb.obsluzonoKlientaClassHandle.getClassHandle());
     }
+    public void subscribeObsluzonoKlienta() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ObjectClassNotDefined, ConcurrentAccessAttempted, AttributeNotDefined, RestoreInProgress, SaveInProgress, InteractionClassNotDefined, FederateLoggingServiceCalls {
+        fedamb.obsluzonoKlientaClassHandle = prepareFomInteraction(
+                rtiamb.getInteractionClassHandle(HLA_OBSLUZONO_KLIENTA),
+                new FomObjectDefinition<String, Class<?>>(CZAS_OBSLUGI, Float.class),
+                new FomObjectDefinition<String, Class<?>>(NR_KLIENTA, Integer.class));
+        rtiamb.subscribeInteractionClass(fedamb.obsluzonoKlientaClassHandle.getClassHandle());
+    }
 
+    public void publishZamknijKase() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
+        fedamb.zamknijKaseClassHandle = prepareFomInteraction(
+                rtiamb.getInteractionClassHandle(HLA_ZAMKNIJ_KASE),
+                new FomObjectDefinition<String, Class<?>>(NR_KASY, Integer.class));
+        rtiamb.publishInteractionClass(fedamb.zamknijKaseClassHandle.getClassHandle());
+    }
     public void subscribeZamknijKase() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
         fedamb.zamknijKaseClassHandle = prepareFomInteraction(
                 rtiamb.getInteractionClassHandle(HLA_ZAMKNIJ_KASE),
-                new Pair<String, Class<?>>(NR_KASY, Integer.class));
+                new FomObjectDefinition<String, Class<?>>(NR_KASY, Integer.class));
         rtiamb.subscribeInteractionClass(fedamb.zamknijKaseClassHandle.getClassHandle());
     }
 
+    public void publishOtworzKase() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
+        fedamb.otworzKaseClassHandle = prepareFomInteraction(
+                rtiamb.getInteractionClassHandle(HLA_OTWORZ_KASE),
+                new FomObjectDefinition<String, Class<?>>(UPRZYWILEJOWANY, Integer.class));
+        rtiamb.publishInteractionClass(fedamb.otworzKaseClassHandle.getClassHandle());
+    }
     public void subscribeOtworzKase() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
         fedamb.otworzKaseClassHandle = prepareFomInteraction(
             rtiamb.getInteractionClassHandle(HLA_OTWORZ_KASE),
-            new Pair<String, Class<?>>(NR_KASY, Integer.class));
+            new FomObjectDefinition<String, Class<?>>(NR_KASY, Integer.class));
         rtiamb.subscribeInteractionClass(fedamb.otworzKaseClassHandle.getClassHandle());
     }
 
     public void publishKasa() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, SaveInProgress, OwnershipAcquisitionPending, ConcurrentAccessAttempted, RestoreInProgress, AttributeNotDefined, ObjectClassNotDefined {
         fedamb.kasaClassHandle = prepareFomObject(rtiamb.getObjectClassHandle(HLA_KASA),
-                new Pair<String, Class<?>>(NR_KASY, Integer.class),
-                new Pair<String, Class<?>>(DLUGOSC_KOLEJKI, Integer.class));
+                new FomObjectDefinition<String, Class<?>>(NR_KASY, Integer.class),
+                new FomObjectDefinition<String, Class<?>>(DLUGOSC_KOLEJKI, Integer.class));
         rtiamb.publishObjectClass(fedamb.kasaClassHandle.getClassHandle(), fedamb.kasaClassHandle.createAttributeHandleSet());
     }
-
-    public void subscribeKlient() throws RTIinternalError, NameNotFound, FederateNotExecutionMember, ObjectClassNotDefined, ConcurrentAccessAttempted, AttributeNotDefined, RestoreInProgress, SaveInProgress {
-        fedamb.klientClassHandle = prepareFomObject(rtiamb.getObjectClassHandle(HLA_KLIENT),
-                new Pair<String, Class<?>>(NR_KASY, Integer.class),
-                new Pair<String, Class<?>>(NR_KLIENTA, Integer.class),
-                new Pair<String, Class<?>>(CZY_UPRZYWILEJOWANY, Boolean.class),
-                new Pair<String, Class<?>>(POZYCJA_KOLEJKI, Integer.class),
-                new Pair<String, Class<?>>(RODZAJ_ZALATWIANEJ_SPRAWY, Integer.class));
-        rtiamb.subscribeObjectClassAttributes(fedamb.klientClassHandle.getClassHandle(), fedamb.klientClassHandle.createAttributeHandleSet());
+    public void subscribeKasa() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ObjectClassNotDefined, ConcurrentAccessAttempted, AttributeNotDefined, RestoreInProgress, SaveInProgress {
+        fedamb.kasaClassHandle = prepareFomObject(rtiamb.getObjectClassHandle(HLA_KASA),
+                new FomObjectDefinition<String, Class<?>>(NR_KASY, Integer.class),
+                new FomObjectDefinition<String, Class<?>>(DLUGOSC_KOLEJKI, Integer.class));
+        rtiamb.subscribeObjectClassAttributes(fedamb.kasaClassHandle.getClassHandle(), fedamb.kasaClassHandle.createAttributeHandleSet());
     }
 
     public void publishKlient() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, SaveInProgress, OwnershipAcquisitionPending, ConcurrentAccessAttempted, RestoreInProgress, AttributeNotDefined, ObjectClassNotDefined {
         fedamb.klientClassHandle = prepareFomObject(rtiamb.getObjectClassHandle(HLA_KLIENT),
-                new Pair<String, Class<?>>(NR_KASY, Integer.class),
-                new Pair<String, Class<?>>(NR_KLIENTA, Integer.class),
-                new Pair<String, Class<?>>(CZY_UPRZYWILEJOWANY, Boolean.class),
-                new Pair<String, Class<?>>(POZYCJA_KOLEJKI, Integer.class),
-                new Pair<String, Class<?>>(RODZAJ_ZALATWIANEJ_SPRAWY, Integer.class));
+                new FomObjectDefinition<String, Class<?>>(NR_KASY, Integer.class),
+                new FomObjectDefinition<String, Class<?>>(NR_KLIENTA, Integer.class),
+                new FomObjectDefinition<String, Class<?>>(CZY_UPRZYWILEJOWANY, Boolean.class),
+                new FomObjectDefinition<String, Class<?>>(POZYCJA_KOLEJKI, Integer.class),
+                new FomObjectDefinition<String, Class<?>>(RODZAJ_ZALATWIANEJ_SPRAWY, Integer.class));
 
         rtiamb.publishObjectClass(fedamb.klientClassHandle.getClassHandle(), fedamb.klientClassHandle.createAttributeHandleSet());
+    }
+    public void subscribeKlient() throws RTIinternalError, NameNotFound, FederateNotExecutionMember, ObjectClassNotDefined, ConcurrentAccessAttempted, AttributeNotDefined, RestoreInProgress, SaveInProgress {
+        fedamb.klientClassHandle = prepareFomObject(rtiamb.getObjectClassHandle(HLA_KLIENT),
+                new FomObjectDefinition<String, Class<?>>(NR_KASY, Integer.class),
+                new FomObjectDefinition<String, Class<?>>(NR_KLIENTA, Integer.class),
+                new FomObjectDefinition<String, Class<?>>(CZY_UPRZYWILEJOWANY, Boolean.class),
+                new FomObjectDefinition<String, Class<?>>(POZYCJA_KOLEJKI, Integer.class),
+                new FomObjectDefinition<String, Class<?>>(RODZAJ_ZALATWIANEJ_SPRAWY, Integer.class));
+        rtiamb.subscribeObjectClassAttributes(fedamb.klientClassHandle.getClassHandle(), fedamb.klientClassHandle.createAttributeHandleSet());
     }
 }

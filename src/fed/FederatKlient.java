@@ -4,7 +4,6 @@ package fed;
  */
 
 import amb.Ambasador;
-import fom.Pair;
 import hla.rti.*;
 import hla.rti.jlc.EncodingHelpers;
 import hla.rti.jlc.RtiFactoryFactory;
@@ -37,7 +36,7 @@ public class FederatKlient extends AbstractFederat {
 
     public void runFederate() {
         createFederation();
-        fedamb = prepareFederationAmbassador();
+        prepareFederationAmbassador();
         joinFederation(federateName);
         registerSyncPoint();
         waitForUser();
@@ -57,6 +56,16 @@ public class FederatKlient extends AbstractFederat {
                     createAndRegisterCustomer(getFederateAmbassador().getFederateTime(), shouldGeneratePrivileged);
                     shouldGeneratePrivileged = shouldGenerateNewClient = false;
                 }
+                customersHandlesToObjects.values().forEach(customer -> {
+                        if (customer.wantsToChangeQueue){
+                            int handle = customersObjectsToHandles.get(customer);
+                            sendCustomerLeftQueue(handle);
+                            this.allCustomers.add(customer);
+                            customersObjectsToHandles.remove(customer);
+                            customersHandlesToObjects.remove(handle);
+                        }
+                });
+
                 updateCustomersWithNewFederateTime(federateTime);
 
 
@@ -67,31 +76,31 @@ public class FederatKlient extends AbstractFederat {
         }
     }
 
-    private Ambasador prepareFederationAmbassador() {
-        Ambasador fedAmbassador = new Ambasador();
-        fedAmbassador.registerObjectInstanceCreatedListener((objectHandle, classHandle, objectName) -> {
+    private void prepareFederationAmbassador() {
+        this.fedamb = new Ambasador();
+        fedamb.registerObjectInstanceCreatedListener((objectHandle, classHandle, objectName) -> {
             objectToClassHandleMap.put(objectHandle, classHandle);
             queuesSizes.put(objectHandle, 0);
         });
-        fedAmbassador.registerAttributesUpdatedListener((objectHandle, theAttributes, tag, theTime, retractionHandle) -> {
-            Integer classHandle = objectToClassHandleMap.get(objectHandle);
-            if (classHandle.equals(fedamb.kasaClassHandle.getClassHandle())) {
-                log("Checkout " + objectHandle + " updated, updating queue size");
+        fedamb.registerAttributesUpdatedListener((objectHandle, theAttributes, tag, theTime, retractionHandle) -> {
+            if (queuesSizes.containsKey(objectHandle)
+                    && fedamb.kasaClassHandle.getClassHandle() == queuesSizes.get(objectHandle)) {
+                int queueSize = -1;
                 for (int i = 0; i < theAttributes.size(); i++) {
-                    int attributeHandle;
                     try {
-                        attributeHandle = theAttributes.getAttributeHandle(i);
-                        Class<?> typeFor = fedamb.kasaClassHandle.getTypeFor(attributeHandle);
-                        if (isAttributeQueueLength(attributeHandle, typeFor)) {
-                            updateCheckoutQueueWith(objectHandle, theAttributes.getValue(i));
+                        byte[] value = theAttributes.getValue(i);
+                        if (theAttributes.getAttributeHandle(i) == fedamb.kasaClassHandle.getHandleFor(DLUGOSC_KOLEJKI)) {
+                            queueSize = EncodingHelpers.decodeInt(value);
                         }
                     } catch (Exception e) {
+                        log("blad2");
                         log(e.getMessage());
                     }
                 }
+                queuesSizes.put(objectHandle, queueSize);
             }
         });
-        fedAmbassador.registerInteractionReceivedListener((int interactionClass, ReceivedInteraction theInteraction, byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) -> {
+        fedamb.registerInteractionReceivedListener((int interactionClass, ReceivedInteraction theInteraction, byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) -> {
             if (interactionClass == fedamb.startSymulacjiClassHandle.getClassHandle()) {
                 log("Start interaction received");
                 fedamb.setSimulationStarted(true);
@@ -116,7 +125,6 @@ public class FederatKlient extends AbstractFederat {
                 }
             }
         });
-        return fedAmbassador;
     }
 
     private Optional<Entry<Integer, Integer>> getShortestQueue() {
@@ -132,7 +140,10 @@ public class FederatKlient extends AbstractFederat {
 
     private void updateCustomersWithNewFederateTime(double newFederateTime) {
         allCustomers.forEach(customer -> {
-            customer.updateWithNewFederateTime(newFederateTime);
+           String tmp = customer.updateWithNewFederateTime(newFederateTime);
+           if (tmp !=null && !tmp.equals("")){
+               log(tmp);
+           }
         });
         allCustomers.forEach(customer ->{
             submitNewTask(()->{
@@ -145,7 +156,7 @@ public class FederatKlient extends AbstractFederat {
         min.ifPresent(entry -> {
             log("Customer " + customer + " entering queue in checkout " + entry.getKey());
             entry.setValue(entry.getValue() + 1);
-            sendQueueEnteredInteraction(this.customersObjectsToHandles.get(customer), entry.getKey(), customer.isPrivileged());
+            sendQueueEnteredInteraction(customersObjectsToHandles.get(customer), entry.getKey(), customer.isPrivileged());
             this.allCustomers.remove(customer);
         });
     }
@@ -167,7 +178,7 @@ public class FederatKlient extends AbstractFederat {
     }
 
     private boolean isAttributeQueueLength(int attributeHandle, Class<?> typeFor) {
-        return typeFor.getName().equalsIgnoreCase(Integer.class.getName());
+        return typeFor.getName().equalsIgnoreCase(Integer.class.getName()) && fedamb.kasaClassHandle.getNameFor(attributeHandle).equalsIgnoreCase(DLUGOSC_KOLEJKI);
     }
 
     private void createAndRegisterCustomer(double oldFederateTime, boolean isPrivileged) {
@@ -185,8 +196,9 @@ public class FederatKlient extends AbstractFederat {
     private int registerRtiCustomer(Klient customer) throws RTIexception {
         int customerHandle = rtiamb.registerObjectInstance(fedamb.klientClassHandle.getClassHandle());
         SuppliedAttributes attributes = RtiFactoryFactory.getRtiFactory().createSuppliedAttributes();
-        attributes.add(fedamb.klientClassHandle.getHandleFor(UPRZYWILEJOWANY),
-                EncodingHelpers.encodeBoolean(customer.isPrivileged()));
+        attributes.add(fedamb.klientClassHandle.getHandleFor(UPRZYWILEJOWANY), EncodingHelpers.encodeBoolean(customer.isPrivileged()));
+        attributes.add(fedamb.klientClassHandle.getHandleFor(NR_KLIENTA), EncodingHelpers.encodeInt(customerHandle));
+
         rtiamb.updateAttributeValues(customerHandle, attributes, generateTag());
         customersHandlesToObjects.put(customerHandle, customer);
         customersObjectsToHandles.put(customer, customerHandle);

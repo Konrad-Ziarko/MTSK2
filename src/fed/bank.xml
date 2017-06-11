@@ -107,6 +107,8 @@
                               semantics="NA">
                 <parameter name="czasObslugi" dataType="HLAfloat64BE"
                            semantics="NA" />
+                <parameter name="nrKlienta" dataType="HLAinteger32BE"
+                           semantics="NA" />
             </interactionClass>
             <interactionClass name="wejscieDoKasy" sharing="PublishSubscribe"
                               dimensions="NA" transportation="HLAreliable" order="Receive"

@@ -1,12 +1,13 @@
 package fed;
 
 import amb.Ambasador;
-import fom.Pair;
+import fom.FomObjectDefinition;
 import hla.rti.*;
 import hla.rti.jlc.EncodingHelpers;
 import hla.rti.jlc.RtiFactoryFactory;
 
 import javax.swing.*;
+import javax.swing.text.DefaultCaret;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.HashMap;
@@ -32,20 +33,9 @@ public class FederatGUI extends AbstractFederat {
     private JScrollPane scrollPane;
     //
 
-    private static final String CZAS_OBSLUGI = "sredniCzasObslugi";
-    private static final String CZAS_CZEKANIA_NA_OBSLUGE = "sredniCzasOczekiwania";
-    private static final String NR_OBSLUGIWANEGO = "nrObslugiwanegoKlienta";
-    private static final String ID_KASA = "idKasa";
-    private static final String ID_KLIENT = "idKlient";
-    private static final String NR_KASY = "nrKasy";
-    private static final String NR_W_KOLEJCE = "pozycjaKolejki";
-    private static final String UPRZYWILEJOWANY = "czyUprzywilejowany";
-    private static final String CZAS_ZAKUPOW = "rodzajZalatwianejSprawy";
-
-    private Ambasador fedAmbassador;
     private Map<Integer, Integer> checkoutObjectHandleToClassHandleMap;
     private Map<Integer, Integer> customerObjectHandleToClassHandleMap;
-    private Map<Integer, Pair<Integer, Boolean>> checkoutObjectHandleToQueueSizeAndFilledMap;
+    private Map<Integer, FomObjectDefinition<Integer, Boolean>> checkoutObjectHandleToQueueSizeAndFilledMap;
     private List<Integer> customers;
     private Integer statisticsObjectHandle;
     private int customersLeft = 0;
@@ -146,9 +136,10 @@ public class FederatGUI extends AbstractFederat {
         scrollPane.setViewportView(textArea);
         scrollPane.setBounds(30, 65, 475, 180);
         panel.add(scrollPane);
+        DefaultCaret caret = (DefaultCaret)textArea.getCaret();
+        caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
         scrollPane.setSize(700, 400);
         scrollPane.setLocation(50, 100);
-        panel.add(scrollPane);
 
 
         frame.add(panel);
@@ -189,7 +180,7 @@ public class FederatGUI extends AbstractFederat {
     public void runFederate() {
         createWindow();
         createFederation();
-        fedamb = prepareFederationAmbassador();
+        prepareFederationAmbassador();
         joinFederation(federateName);
         registerSyncPoint();
         waitForUser();
@@ -234,7 +225,7 @@ public class FederatGUI extends AbstractFederat {
         try {
             parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
             rtiamb.sendInteraction(fedamb.startSymulacjiClassHandle.getClassHandle(), parameters, generateTag());
-            start.setEnabled(false);
+            //start.setEnabled(false);
             stop.setEnabled(true);
         } catch (RTIexception e1) {
             log("Couldn't send \"start\" interaction, because: " + e1.getMessage());
@@ -257,51 +248,53 @@ public class FederatGUI extends AbstractFederat {
     }
 
     public void cleanUpFederate() throws RTIexception {
-        //controller.setFederationStatus("Cleaning up the federate");
         super.cleanUpFederate();
     }
 
 
-    protected Ambasador prepareFederationAmbassador() {
-        fedAmbassador = new Ambasador();
-        fedAmbassador.registerObjectInstanceCreatedListener((int theObject, int theObjectClass, String objectName) -> {
+    protected void prepareFederationAmbassador() {
+        this.fedamb = new Ambasador();
+        fedamb.registerObjectInstanceCreatedListener((int theObject, int theObjectClass, String objectName) -> {
             if (theObjectClass == fedamb.klientClassHandle.getClassHandle()) {
+                log("Customer " + theObject + " entered, customers amount: " + customers.size());
                 customerObjectHandleToClassHandleMap.put(theObject, theObjectClass);
                 customers.add(theObject);
-                log("Customer " + theObject + " entered, customers amount: " + customers.size());
             } else if (theObjectClass == fedamb.kasaClassHandle.getClassHandle()) {
-                log("New cash opened " + theObject);
+                log("New checkout opened " + theObject);
                 checkoutObjectHandleToClassHandleMap.put(theObject, theObjectClass);
             } else if (theObjectClass == fedamb.statisticsClassHandle.getClassHandle()) {
+                log("New statistics object registered " + theObject);
                 statisticsObjectHandle = theObject;
             }
         });
-        fedAmbassador.registerObjectInstanceRemovedListener((int theObject, byte[] userSuppliedTag, LogicalTime theTime,
-                                                             EventRetractionHandle retractionHandle) -> {
+        fedamb.registerObjectInstanceRemovedListener((int theObject, byte[] userSuppliedTag, LogicalTime theTime,
+                                                      EventRetractionHandle retractionHandle) -> {
             if (customerObjectHandleToClassHandleMap.get(theObject) == fedamb.klientClassHandle.getClassHandle()) {
                 customers.remove(new Integer(theObject));
                 log("Customer " + theObject + " removed");
             }
         });
-        fedAmbassador.registerInteractionReceivedListener((int interactionClass, ReceivedInteraction theInteraction,
-                                                           byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) -> {
+        fedamb.registerInteractionReceivedListener((int interactionClass, ReceivedInteraction theInteraction,
+                                                    byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) -> {
             if (interactionClass == fedamb.wejscieDoKolejkiClassHandle.getClassHandle()) {
-                int extractCustomerClassHandle = extractCustomerClassHandle(theInteraction);
-                log("Customer " + extractCustomerClassHandle + " entered queue");
+                int extractCustomerClassHandle = extractClassHandle(theInteraction);
+                boolean isPrivileged = extractPrivileged(theInteraction);
+                log("Customer " + extractCustomerClassHandle + " entered queue |U=" + isPrivileged);
                 customers.remove(new Integer(extractCustomerClassHandle));
             } else if (interactionClass == fedamb.obsluzonoKlientaClassHandle.getClassHandle()) {
-                //controller.setCustomersLeft(++customersLeft);
+                double extractTime = extractBuyingTime(theInteraction);
+                int extractCustomer = extractCustomerId(theInteraction);
+                log("Customer "+extractCustomer+" left checkout after " + extractTime + " time");
+
             }
         });
-        fedAmbassador.registerAttributesUpdatedListener((theObject, theAttributes, tag, theTime, whateverMan) -> {
-            if (checkoutObjectHandleToClassHandleMap.containsKey(theObject)
-                    && fedamb.kasaClassHandle.getClassHandle() == checkoutObjectHandleToClassHandleMap.get(theObject)) {
+        fedamb.registerAttributesUpdatedListener((theObject, theAttributes, tag, theTime, whateverMan) -> {
+            if (checkoutObjectHandleToClassHandleMap.containsKey(theObject) && fedamb.kasaClassHandle.getClassHandle() == checkoutObjectHandleToClassHandleMap.get(theObject)) {
                 handleCheckoutUpdate(theObject, theAttributes);
             } else if (statisticsObjectHandle != null && statisticsObjectHandle == theObject) {
                 extractAndUpdateStatistics(theAttributes);
             }
         });
-        return fedAmbassador;
     }
 
     private void extractAndUpdateStatistics(ReflectedAttributes theAttributes) {
@@ -327,9 +320,6 @@ public class FederatGUI extends AbstractFederat {
     }
 
     private void updateStatistics(double avgShoppingTime, double avgWaitingTime, double avgServiceTime) {
-        //controller.setAvgShoppingTime(avgShoppingTime);
-        //controller.setAvgWaitingTime(avgWaitingTime);
-        //controller.setAvgServiceTime(avgServiceTime);
     }
 
     private void handleCheckoutUpdate(int theObject, ReflectedAttributes theAttributes) {
@@ -345,17 +335,28 @@ public class FederatGUI extends AbstractFederat {
                 log(e.getMessage());
             }
         }
-        log("Cash " + theObject + " updated: queue size: " + queueSize + " filled");
-        Pair<Integer, Boolean> value = new Pair<>(queueSize, filled);
+        log("Checkout " + theObject + " updated: queue size: " + queueSize + " filled");
+        FomObjectDefinition<Integer, Boolean> value = new FomObjectDefinition<>(queueSize, filled);
         checkoutObjectHandleToQueueSizeAndFilledMap.put(theObject, value);
-        //controller.updateCheckouts(theObject, value);
     }
-
-    private int extractCustomerClassHandle(ReceivedInteraction theInteraction) {
+    private boolean extractPrivileged(ReceivedInteraction theInteraction) {
+        boolean handle = false;
+        for (int i = 0; i < theInteraction.size(); i++) {
+            try {
+                if (theInteraction.getParameterHandle(i) == fedamb.wejscieDoKolejkiClassHandle.getHandleFor(UPRZYWILEJOWANY)) {
+                    handle = EncodingHelpers.decodeBoolean(theInteraction.getValue(i));
+                }
+            } catch (ArrayIndexOutOfBounds e) {
+                log(e.getMessage());
+            }
+        }
+        return handle;
+    }
+    private int extractClassHandle(ReceivedInteraction theInteraction) {
         int handle = -1;
         for (int i = 0; i < theInteraction.size(); i++) {
             try {
-                if (theInteraction.getParameterHandle(i) == fedamb.wejscieDoKolejkiClassHandle.getHandleFor(ID_KLIENT)) {
+                if (theInteraction.getParameterHandle(i) == fedamb.wejscieDoKolejkiClassHandle.getHandleFor(NR_KLIENTA)) {
                     handle = EncodingHelpers.decodeInt(theInteraction.getValue(i));
                 }
             } catch (ArrayIndexOutOfBounds e) {
@@ -363,6 +364,37 @@ public class FederatGUI extends AbstractFederat {
             }
         }
         return handle;
+    }
+    private int extractCustomerId(ReceivedInteraction theInteraction){
+        int retrivedId = -1;
+        for (int i = 0; i < theInteraction.size(); i++) {
+            try {
+                int attributeHandle = theInteraction.getParameterHandle(i);
+                String nameFor = fedamb.obsluzonoKlientaClassHandle.getNameFor(attributeHandle);
+                if (nameFor.equalsIgnoreCase(NR_KLIENTA)) {
+                    retrivedId = EncodingHelpers.decodeInt(theInteraction.getValue(i));
+                }
+            } catch (Exception e) {
+                log(e.getMessage());
+            }
+        }
+        return retrivedId;
+    }
+
+    private double extractBuyingTime(ReceivedInteraction theInteraction) {
+        double buyingTime = -1;
+        for (int i = 0; i < theInteraction.size(); i++) {
+            try {
+                int attributeHandle = theInteraction.getParameterHandle(i);
+                String nameFor = fedamb.obsluzonoKlientaClassHandle.getNameFor(attributeHandle);
+                if (nameFor.equalsIgnoreCase(CZAS_OBSLUGI)) {
+                    buyingTime = EncodingHelpers.decodeDouble(theInteraction.getValue(i));
+                }
+            } catch (Exception e) {
+                log(e.getMessage());
+            }
+        }
+        return buyingTime;
     }
 
     protected void publishAndSubscribe() {
@@ -372,6 +404,9 @@ public class FederatGUI extends AbstractFederat {
             subscribeStatystyka();
 
             subscribeWejscieDoKolejki();
+            subscribeObsluzonoKlienta();
+
+            subscribeWejscieDoKasy();
 
             publishOtworzKase();
 
@@ -381,6 +416,7 @@ public class FederatGUI extends AbstractFederat {
             publishSimStart();
             publishSimStop();
         } catch (NameNotFound | FederateNotExecutionMember | SaveInProgress | RTIinternalError | ConcurrentAccessAttempted | ObjectClassNotDefined | RestoreInProgress | InteractionClassNotDefined | FederateLoggingServiceCalls | AttributeNotDefined nameNotFound) {
+            log("Name not found");
             nameNotFound.printStackTrace();
         }
     }

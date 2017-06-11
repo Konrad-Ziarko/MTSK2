@@ -1,0 +1,9 @@
+statysyka musi obsluzyc interakcje wejscieDoKasyClassHandle
+
+klient w losowych momentach powinien opuszczac kolejke
+
+menedzer jak kolejki są za dlugie albo jak liczba kas = 0 powinien dodawac nowa
+
+menedzer powinien w losowych odstepach zamykac kase
+
+klient odbiera interakcje obsluzonoKlienta i usuwa go z list
