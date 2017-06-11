@@ -22,6 +22,7 @@ public class FederatKlient extends AbstractFederat {
 
     private boolean shouldGeneratePrivileged = false;
 
+    private List<Klient> waitingCustomers = new ArrayList<>();
     private List<Klient> allCustomers = new ArrayList<>();
     private Map<Integer, Integer> queuesSizes = new HashMap<>();
     private Map<Integer, Klient> customersHandlesToObjects = new HashMap<>();
@@ -126,6 +127,7 @@ public class FederatKlient extends AbstractFederat {
     }
 
     private void updateCustomersWithNewFederateTime(double newFederateTime) {
+
         allCustomers.forEach(customer -> {
            customer.updateWithNewFederateTime(newFederateTime);
         });
@@ -144,33 +146,51 @@ public class FederatKlient extends AbstractFederat {
         });
         allCustomers.forEach(customer ->{
             submitNewTask(()->{
-                optionallySendQueueEnteredInteraction(customer, getShortestQueue());
+                optionallySendQueueEnteredInteraction(customer, getShortestQueue(), newFederateTime);
             });
         });
+
+        waitingCustomers.forEach(klient -> {
+            klient.updateWithNewFederateTime(newFederateTime);
+        });
+        Iterator<Klient> entry = waitingCustomers.iterator();
+        while (entry.hasNext()){
+            Klient k = entry.next();
+            if (k.hasFinishedWaiting){
+                k.oldFederateTime = newFederateTime;
+                k.hasEntered = true;
+                allCustomers.add(k);
+                entry.remove();
+            }
+        }
     }
 
-    private void optionallySendQueueEnteredInteraction(Klient customer, Optional<Entry<Integer, Integer>> min) {
+    private void optionallySendQueueEnteredInteraction(Klient customer, Optional<Entry<Integer, Integer>> min, double newFederateTime) {
         min.ifPresent(entry -> {
             log("Customer " + customer + " entering queue in checkout " + entry.getKey());
             entry.setValue(entry.getValue() + 1);
             customer.queueId = entry.getKey();
+            customer.oldFederateTime = newFederateTime;
             sendQueueEnteredInteraction(customersObjectsToHandles.get(customer), entry.getKey(), customer.isPrivileged());
             this.allCustomers.remove(customer);
         });
     }
 
     private boolean optionallySendCustomerLeftQueue(Klient customer, int handle, double federateTime) {
-        if (customer.checkImpatience(federateTime)){
+        if (customer.hasEntered && customer.checkImpatience(federateTime)){
             SuppliedParameters parameters;
             try {
                 queuesSizes.put(customer.queueId, queuesSizes.get(customer.queueId)-1);
                 //customersObjectsToHandles.remove(customer);
                 //customersHandlesToObjects.remove(handle);
                 log("Customer " + handle + " left queue in checkout " + customer.queueId);
+                customer.oldFederateTime = federateTime;
                 customer.queueId = -1;
                 customer.wantsToChangeQueue = false;
                 customer.changedQueue = true;
-                allCustomers.add(customer);
+                customer.hasEntered = false;
+                //allCustomers.add(customer);
+                waitingCustomers.add(customer);
                 parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
                 parameters.add(fedamb.opuszczenieKolejkiClassHandle.getHandleFor(NR_KLIENTA),
                         EncodingHelpers.encodeInt(handle));
@@ -206,7 +226,8 @@ public class FederatKlient extends AbstractFederat {
     private void createAndRegisterCustomer(double oldFederateTime, boolean isPrivileged) {
         Klient customer = new Klient(oldFederateTime, rand.nextInt(MAX_SERVICE_TIME - MIN_SERVICE_TIME + 1) + MIN_SERVICE_TIME);
         customer.setPrivileged(isPrivileged);
-        allCustomers.add(customer);
+        //allCustomers.add(customer);
+        waitingCustomers.add(customer);
         try {
             int customerHandle = registerRtiCustomer(customer);
             log("New customer " + customerHandle + " enters the bank: " + customer + " U=" + customer.isPrivileged());

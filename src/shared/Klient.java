@@ -11,13 +11,16 @@ public class Klient {
 
     public int id;
     public int queueId;
-    private Double oldFederateTime;
+    public boolean hasEntered;
+    private Double waitingTime;
+    public Double oldFederateTime;
     private Double serviceTime;
     private boolean hasServiceFinished;
     private boolean privileged;
     public boolean wantsToChangeQueue;
     public boolean changedQueue;
     public Double impatienceTime;
+    public boolean hasFinishedWaiting;
 
     private void newImpatienceTime(){
         impatienceTime = new Random().nextDouble()*(impatienceTimeMax-impatienceTimeMin)+impatienceTimeMin;
@@ -26,7 +29,8 @@ public class Klient {
     public Klient(double oldFederateTime, int serviceTime) {
         this.oldFederateTime = oldFederateTime;
         this.serviceTime = (double) serviceTime;
-        privileged = wantsToChangeQueue = changedQueue = false;
+        waitingTime = impatienceTimeMin;
+        privileged = wantsToChangeQueue = changedQueue = hasEntered = false;
         newImpatienceTime();
     }
 
@@ -41,6 +45,9 @@ public class Klient {
     }
 
     public void updateWithNewFederateTime(double newFederateTime) {
+        if(waitingTime != null){
+            this.hasFinishedWaiting = newFederateTime - oldFederateTime >= waitingTime;
+        }
         if (serviceTime != null) {
             this.hasServiceFinished = newFederateTime - oldFederateTime >= serviceTime;
         }

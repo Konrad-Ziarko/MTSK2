@@ -191,6 +191,7 @@ public class FederatGUI extends AbstractFederat {
 
         System.out.println("\nRuszyli");
         while (fedamb.running) {
+            executeAllQueuedTasks();
             if (shouldSendStartInteraction)
                 sendStartInteraction();
             if (shouldSendStopInteraction)
@@ -203,11 +204,6 @@ public class FederatGUI extends AbstractFederat {
             if(shouldGenerateNewCheckout)
                 generateNewCheckout();
 
-
-            if (fedamb.isSimulationStarted()) {
-                //textArea.append("dupa\n");
-                //log("dupa\n");
-            }
             advanceTime(timeStep);
             try {
                 rtiamb.tick();
@@ -274,19 +270,19 @@ public class FederatGUI extends AbstractFederat {
                 log("Customer " + theObject + " removed");
             }
         });
-        fedamb.registerInteractionReceivedListener((int interactionClass, ReceivedInteraction theInteraction,
-                                                    byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) -> {
+        fedamb.registerInteractionReceivedListener((int interactionClass, ReceivedInteraction theInteraction, byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) -> {
             if (interactionClass == fedamb.wejscieDoKolejkiClassHandle.getClassHandle()) {
                 int extractCustomerClassHandle = extractClassHandle(theInteraction);
                 boolean isPrivileged = extractPrivileged(theInteraction);
                 log("Customer " + extractCustomerClassHandle + " entered queue |U=" + isPrivileged);
                 customers.remove(new Integer(extractCustomerClassHandle));
-            } else if (interactionClass == fedamb.obsluzonoKlientaClassHandle.getClassHandle()) {
+            }
+            if (interactionClass == fedamb.obsluzonoKlientaClassHandle.getClassHandle()) {
                 double extractTime = extractBuyingTime(theInteraction);
                 int extractCustomer = extractCustomerId(theInteraction);
                 log("Customer "+extractCustomer+" left checkout after " + extractTime + " time");
-
-            }else if (interactionClass == fedamb.opuszczenieKolejkiClassHandle.getClassHandle()) {
+            }
+            if (interactionClass == fedamb.opuszczenieKolejkiClassHandle.getClassHandle()) {
                 int customerId = -1;
                 for (int i = 0; i < theInteraction.size(); i++) {
                     try {

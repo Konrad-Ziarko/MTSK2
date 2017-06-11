@@ -108,7 +108,6 @@ public class Ambasador extends NullFederateAmbassador {
         else if (zamknijKaseClassHandle!=null &&interactionClass == zamknijKaseClassHandle.getClassHandle())
             intType = "zamknijKase";
 
-
         log("Received interaction of class " + intType + " id:"+ interactionClass);
 
         interactionReceivedListeners.forEach(listener -> {

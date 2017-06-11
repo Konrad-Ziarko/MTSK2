@@ -110,22 +110,20 @@ public class FederatKasa extends AbstractFederat {
                 log("Stop interaction received");
                 fedamb.running = false;
             } else if (interactionClass == fedamb.opuszczenieKolejkiClassHandle.getClassHandle()) {
-                submitNewTask(() -> {
-                    int customerId = -1;
-                    for (int i = 0; i < theInteraction.size(); i++) {
-                        try {
-                            /*if (theInteraction.getParameterHandle(i) == fedamb.wejscieDoKolejkiClassHandle.getHandleFor(NR_KASY)) {
+                int customerId = -1;
+                for (int i = 0; i < theInteraction.size(); i++) {
+                    try {
+                            /*if (theInteraction.getParameterHandle(i) == fedamb.opuszczenieKolejkiClassHandle.getHandleFor(NR_KASY)) {
                                 checkoutId = EncodingHelpers.decodeInt(theInteraction.getValue(i));
                             } else*/
-                            if (theInteraction.getParameterHandle(i) == fedamb.wejscieDoKolejkiClassHandle.getHandleFor(NR_KLIENTA)) {
-                                customerId = EncodingHelpers.decodeInt(theInteraction.getValue(i));
-                            }
-                        } catch (ArrayIndexOutOfBounds e) {
-                            log(e.getMessage());
+                        if (theInteraction.getParameterHandle(i) == fedamb.opuszczenieKolejkiClassHandle.getHandleFor(NR_KLIENTA)) {
+                            customerId = EncodingHelpers.decodeInt(theInteraction.getValue(i));
                         }
+                    } catch (ArrayIndexOutOfBounds e) {
+                        log(e.getMessage());
                     }
-                    log("Customer " + customerId + " left queue");
-                });
+                }
+                log("Customer " + customerId + " left queue");
             }
         });
     }
