@@ -53,8 +53,8 @@ public abstract class AbstractFederat {
     protected static final String HLA_START_SIM = "HLAinteractionRoot.startSymulacji";
     protected static final String HLA_NOWY_KLIENT = "HLAinteractionRoot.nowyKlient";
 
-    protected int MAX_SERVICE_TIME = 800;
-    protected int MIN_SERVICE_TIME = 400;
+    protected int MAX_SERVICE_TIME = 8000;
+    protected int MIN_SERVICE_TIME = 4000;
 
     //
     public static final String FOM_PATH = "src/fed/bank.xml";
@@ -234,12 +234,8 @@ public abstract class AbstractFederat {
         rtiamb.deleteObjectInstance(handle, generateTag());
     }
 
-    protected Ambasador getFederateAmbassador() {
-        return fedamb;
-    }
-
     protected double getLbts() {
-        return getFederateAmbassador().getFederateTime() + getFederateAmbassador().getFederateLookahead();
+        return fedamb.getFederateTime() + fedamb.getFederateLookahead();
     }
 
     protected byte[] generateTag() {
@@ -285,13 +281,13 @@ public abstract class AbstractFederat {
 
 
     public void publishOpuszczenieKolejki() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
-        fedamb.wejscieDoKolejkiClassHandle = prepareFomInteraction(
+        fedamb.opuszczenieKolejkiClassHandle = prepareFomInteraction(
                 rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KOLEJKI),
                 new FomObjectDefinition<String, Class<?>>(NR_KLIENTA, Integer.class));
         rtiamb.publishInteractionClass(fedamb.opuszczenieKolejkiClassHandle.getClassHandle());
     }
     public void subscribeOpuszczenieKolejki() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
-        fedamb.wejscieDoKolejkiClassHandle = prepareFomInteraction(
+        fedamb.opuszczenieKolejkiClassHandle = prepareFomInteraction(
                 rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KOLEJKI),
                 new FomObjectDefinition<String, Class<?>>(NR_KLIENTA, Integer.class));
         rtiamb.subscribeInteractionClass(fedamb.opuszczenieKolejkiClassHandle.getClassHandle());
@@ -324,6 +320,7 @@ public abstract class AbstractFederat {
         fedamb.startSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_START_SIM));
         rtiamb.subscribeInteractionClass(fedamb.startSymulacjiClassHandle.getClassHandle());
     }
+
     public void publishSimStop() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
         fedamb.stopSymulacjiClassHandle = prepareFomInteraction(rtiamb.getInteractionClassHandle(HLA_STOP_SIM));
         rtiamb.publishInteractionClass(fedamb.stopSymulacjiClassHandle.getClassHandle());

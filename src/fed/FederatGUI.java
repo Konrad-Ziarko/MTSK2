@@ -286,6 +286,21 @@ public class FederatGUI extends AbstractFederat {
                 int extractCustomer = extractCustomerId(theInteraction);
                 log("Customer "+extractCustomer+" left checkout after " + extractTime + " time");
 
+            }else if (interactionClass == fedamb.opuszczenieKolejkiClassHandle.getClassHandle()) {
+                int customerId = -1;
+                for (int i = 0; i < theInteraction.size(); i++) {
+                    try {
+                            /*if (theInteraction.getParameterHandle(i) == fedamb.opuszczenieKolejkiClassHandle.getHandleFor(NR_KASY)) {
+                                checkoutId = EncodingHelpers.decodeInt(theInteraction.getValue(i));
+                            } else*/
+                        if (theInteraction.getParameterHandle(i) == fedamb.opuszczenieKolejkiClassHandle.getHandleFor(NR_KLIENTA)) {
+                            customerId = EncodingHelpers.decodeInt(theInteraction.getValue(i));
+                        }
+                    } catch (ArrayIndexOutOfBounds e) {
+                        log(e.getMessage());
+                    }
+                }
+                log("Customer " + customerId + " left queue");
             }
         });
         fedamb.registerAttributesUpdatedListener((theObject, theAttributes, tag, theTime, whateverMan) -> {
@@ -403,6 +418,7 @@ public class FederatGUI extends AbstractFederat {
             subscribeKlient();
             subscribeStatystyka();
 
+            subscribeOpuszczenieKolejki();
             subscribeWejscieDoKolejki();
             subscribeObsluzonoKlienta();
 

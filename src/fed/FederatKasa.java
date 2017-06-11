@@ -20,11 +20,9 @@ public class FederatKasa extends AbstractFederat {
 
     private Map<Integer, Kasa> checkoutObjectIdsToObjects = new HashMap<>();
 
-
     public static void main(String[] args) {
         new FederatKasa().runFederate();
     }
-
 
     public void runFederate() {
         createFederation();
@@ -42,7 +40,7 @@ public class FederatKasa extends AbstractFederat {
             if (fedamb.isSimulationStarted()) {
                 executeAllQueuedTasks();
                 checkoutObjectIdsToObjects.values().forEach(checkout -> {
-                    double federateTime = getFederateAmbassador().getFederateTime();
+                    double federateTime = fedamb.getFederateTime();
                     checkout.updateCurrentBuyingCustomer(federateTime, (buyingCustomer, waitingTime) -> {
                         log(federateTime + " " + buyingCustomer + " started being serviced after waiting " + waitingTime);
                         sendBuyingStartedInteraction(waitingTime);
@@ -111,6 +109,23 @@ public class FederatKasa extends AbstractFederat {
             } else if (interactionClass == fedamb.stopSymulacjiClassHandle.getClassHandle()) {
                 log("Stop interaction received");
                 fedamb.running = false;
+            } else if (interactionClass == fedamb.opuszczenieKolejkiClassHandle.getClassHandle()) {
+                submitNewTask(() -> {
+                    int customerId = -1;
+                    for (int i = 0; i < theInteraction.size(); i++) {
+                        try {
+                            /*if (theInteraction.getParameterHandle(i) == fedamb.wejscieDoKolejkiClassHandle.getHandleFor(NR_KASY)) {
+                                checkoutId = EncodingHelpers.decodeInt(theInteraction.getValue(i));
+                            } else*/
+                            if (theInteraction.getParameterHandle(i) == fedamb.wejscieDoKolejkiClassHandle.getHandleFor(NR_KLIENTA)) {
+                                customerId = EncodingHelpers.decodeInt(theInteraction.getValue(i));
+                            }
+                        } catch (ArrayIndexOutOfBounds e) {
+                            log(e.getMessage());
+                        }
+                    }
+                    log("Customer " + customerId + " left queue");
+                });
             }
         });
     }
@@ -143,7 +158,7 @@ public class FederatKasa extends AbstractFederat {
     private void prepareCustomerAndUpdateCheckoutInRti(ReceivedInteraction theInteraction) {
         log("Received wejscieDoKolejki");
         try {
-            Klient customer = new Klient(getFederateAmbassador().getFederateTime(), rand.nextInt(MAX_SERVICE_TIME - MIN_SERVICE_TIME + 1) + MIN_SERVICE_TIME);
+            Klient customer = new Klient(fedamb.getFederateTime(), rand.nextInt(MAX_SERVICE_TIME - MIN_SERVICE_TIME + 1) + MIN_SERVICE_TIME);
             FomObjectDefinition<Integer, Integer> checkoutAndCustomerId = getCheckoutAndCustomerIdParameters(theInteraction, customer);
             Kasa checkout = checkoutObjectIdsToObjects.get(checkoutAndCustomerId.getT1());
 
@@ -188,6 +203,7 @@ public class FederatKasa extends AbstractFederat {
             subscribeOtworzKase();
             subscribeZamknijKase();
 
+            subscribeOpuszczenieKolejki();
             subscribeWejscieDoKolejki();
 
             subscribeSimStop();
