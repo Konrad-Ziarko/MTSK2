@@ -11,6 +11,7 @@ public class Klient {
     public void setId (Integer id){
         this.id = id;
     }
+
     private Double patienceTime;
     private Integer queueId;
     private Integer queuePosition;
@@ -20,12 +21,12 @@ public class Klient {
     private Boolean privileged;
     private Integer nrSprawy;
 
-    public Klient(double oldFederateTime, int serviceTime) {
+    public Klient(double oldFederateTime, int serviceTime, double patienceTime) {
         this.oldFederateTime = oldFederateTime;
         this.serviceTime = (double) serviceTime;
         privileged = false;
         queuePosition = -1;
-        patienceTime = 500.0;
+        this.patienceTime = patienceTime;
         this.nrSprawy = new Random().nextInt(10)+1;
     }
 
@@ -93,5 +94,13 @@ public class Klient {
 
     public Integer getQueuePosition() {
         return queuePosition;
+    }
+
+    public void addToPatienceTime(double i) {
+        this.patienceTime += i;
+    }
+
+    public Double getPatienceTime() {
+        return patienceTime;
     }
 }

@@ -333,7 +333,7 @@ public class FederatGUI extends AbstractFederat {
 
     private void reciveQueueEntered(ReceivedInteraction theInteraction) {
         try {
-            Klient customer = new Klient(fedamb.getFederateTime(), 0);
+            Klient customer = new Klient(fedamb.getFederateTime(), 0,0);
             FomObjectDefinition<Integer, Integer> checkoutAndCustomerId = getCheckoutAndCustomerIdParameters(theInteraction, customer);
 
             log("Customer " + customer.getId() + " entered queue in checkout " + checkoutAndCustomerId.getT1() + " with request id = " + customer.getNrSprawy());

@@ -172,7 +172,7 @@ public class FederatKasa extends AbstractFederat {
     private void prepareCustomerAndUpdateCheckoutInRti(ReceivedInteraction theInteraction) {
         log("Received wejscieDoKolejki");
         try {
-            Klient customer = new Klient(fedamb.getFederateTime(), 0);
+            Klient customer = new Klient(fedamb.getFederateTime(), 0,0);
 
             FomObjectDefinition<Integer, Integer> checkoutAndCustomerId = getCheckoutAndCustomerIdParameters(theInteraction, customer);
             Kasa checkout = checkoutObjectIdsToObjects.get(checkoutAndCustomerId.getT1());
