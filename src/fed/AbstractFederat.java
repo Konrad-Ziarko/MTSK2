@@ -355,7 +355,7 @@ public abstract class AbstractFederat {
         fedamb.wejscieDoKasyClassHandle = prepareFomInteraction(
                 rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KASY),
                 new FomObjectDefinition<>(CZAS_CZEKANIA_NA_OBSLUGE, Float.class),
-                //new FomObjectDefinition<>(NR_KASY, Float.class),
+                new FomObjectDefinition<>(NR_KASY, Float.class),
                 new FomObjectDefinition<>(NR_KLIENTA, Integer.class));
         rtiamb.publishInteractionClass(fedamb.wejscieDoKasyClassHandle.getClassHandle());
     }
@@ -363,7 +363,7 @@ public abstract class AbstractFederat {
         fedamb.wejscieDoKasyClassHandle = prepareFomInteraction(
                 rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KASY),
                 new FomObjectDefinition<>(CZAS_CZEKANIA_NA_OBSLUGE, Float.class),
-                //new FomObjectDefinition<>(NR_KASY, Float.class),
+                new FomObjectDefinition<>(NR_KASY, Float.class),
                 new FomObjectDefinition<>(NR_KLIENTA, Integer.class));
         rtiamb.subscribeInteractionClass(fedamb.wejscieDoKasyClassHandle.getClassHandle());
     }

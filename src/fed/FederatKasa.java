@@ -39,11 +39,11 @@ public class FederatKasa extends AbstractFederat {
         while (fedamb.running) {
             if (fedamb.isSimulationStarted()) {
                 executeAllQueuedTasks();
-                checkoutObjectIdsToObjects.values().forEach(checkout -> {
+                checkoutObjectIdsToObjects.forEach((integer, checkout) -> {
                     double federateTime = fedamb.getFederateTime();
                     checkout.updateCurrentBuyingCustomer(federateTime, (buyingCustomer, waitingTime) -> {
                         log(federateTime + " " + buyingCustomer + " started being serviced after waiting " + waitingTime);
-                        sendBuyingStartedInteraction(buyingCustomer.getId(), waitingTime);
+                        sendBuyingStartedInteraction(buyingCustomer.getId(), waitingTime, integer);
                         try {
                             updateCheckoutInRti(checkout.getCheckoutId(), checkout);
                         } catch (Exception e) {
@@ -60,14 +60,14 @@ public class FederatKasa extends AbstractFederat {
         }
     }
 
-    private void sendBuyingStartedInteraction(Integer klient, Double waitingTime) {
+    private void sendBuyingStartedInteraction(Integer klient, Double waitingTime, Integer queueId) {
         log("Sending waiting time of " + waitingTime);
         SuppliedParameters parameters;
         try {
             parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
             parameters.add(fedamb.wejscieDoKasyClassHandle.getHandleFor(CZAS_CZEKANIA_NA_OBSLUGE), EncodingHelpers.encodeDouble(waitingTime));
             parameters.add(fedamb.wejscieDoKasyClassHandle.getHandleFor(NR_KLIENTA), EncodingHelpers.encodeInt(klient));
-            //parameters.add(fedamb.wejscieDoKasyClassHandle.getHandleFor(NR_KLIENTA), EncodingHelpers.encodeInt());
+            parameters.add(fedamb.wejscieDoKasyClassHandle.getHandleFor(NR_KASY), EncodingHelpers.encodeInt(queueId));
             rtiamb.sendInteraction(fedamb.wejscieDoKasyClassHandle.getClassHandle(), parameters, generateTag());
         } catch (RTIexception e) {
             log("Couldn't send service started interaction, because: " + e.getMessage());

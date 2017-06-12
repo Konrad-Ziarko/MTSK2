@@ -289,9 +289,9 @@ public class FederatGUI extends AbstractFederat {
                         attributeHandle = theInteraction.getParameterHandle(i);
                         String nameFor = fedamb.wejscieDoKasyClassHandle.getNameFor(attributeHandle);
                         byte[] value = theInteraction.getValue(i);
-                        //if (nameFor.equalsIgnoreCase(NR_KASY)) {
-                        //    nrKasy = EncodingHelpers.decodeInt(value);
-                        //}
+                        if (nameFor.equalsIgnoreCase(NR_KASY)) {
+                            nrKasy = EncodingHelpers.decodeInt(value);
+                        }
                         if (nameFor.equalsIgnoreCase(NR_KLIENTA)) {
                             nrKlienta = EncodingHelpers.decodeInt(value);
                         }
@@ -312,7 +312,6 @@ public class FederatGUI extends AbstractFederat {
     }
 
     private void reciveQueueEntered(ReceivedInteraction theInteraction) {
-        log("Received wejscieDoKolejki");
         try {
             Klient customer = new Klient(fedamb.getFederateTime(), 0);
             FomObjectDefinition<Integer, Integer> checkoutAndCustomerId = getCheckoutAndCustomerIdParameters(theInteraction, customer);

@@ -119,6 +119,8 @@
                            semantics="NA" />
                 <parameter name="nrKlienta" dataType="HLAinteger32BE"
                            semantics="NA" />
+                <parameter name="nrKasy" dataType="HLAinteger32BE"
+                           semantics="NA" />
             </interactionClass>
         </interactionClass>
     </interactions>
