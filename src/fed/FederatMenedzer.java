@@ -4,22 +4,23 @@ package fed;
  * Created by konrad on 5/28/17.
  */
 public class FederatMenedzer extends AbstractFederat {
-    @Override
+
+    public static void main(String[] args){
+
+    }
+
     protected void runFederate() {
 
     }
 
-    @Override
     protected void publishAndSubscribe() {
 
     }
 
-    @Override
     protected void registerObjects() {
 
     }
 
-    @Override
     protected void deleteObjects() {
 
     }

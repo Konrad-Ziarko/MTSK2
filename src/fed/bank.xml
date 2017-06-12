@@ -99,6 +99,8 @@
                            semantics="NA" />
                 <parameter name="nrKasy" dataType="HLAinteger32BE"
                            semantics="NA" />
+                <parameter name="nrSprawy" dataType="HLAinteger32BE"
+                           semantics="NA" />
                 <parameter name="czyUprzywilejowany" dataType="HLAboolean"
                            semantics="NA" />
             </interactionClass>

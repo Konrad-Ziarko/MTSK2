@@ -16,11 +16,13 @@ public class Klient {
     private Double serviceTime;
     private Boolean hasServiceFinished;
     private Boolean privileged;
+    public Integer nrSprawy;
 
     public Klient(double oldFederateTime, int serviceTime) {
         this.oldFederateTime = oldFederateTime;
         this.serviceTime = (double) serviceTime;
         privileged = false;
+        this.nrSprawy = new Random().nextInt(10)+1;
     }
 
 
@@ -57,5 +59,9 @@ public class Klient {
 
     public Integer getId() {
         return id;
+    }
+
+    public void setServiceTime(double serviceTime) {
+        this.serviceTime = serviceTime;
     }
 }

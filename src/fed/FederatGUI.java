@@ -5,6 +5,8 @@ import fom.FomObjectDefinition;
 import hla.rti.*;
 import hla.rti.jlc.EncodingHelpers;
 import hla.rti.jlc.RtiFactoryFactory;
+import shared.Kasa;
+import shared.Klient;
 
 import javax.swing.*;
 import javax.swing.text.DefaultCaret;
@@ -252,9 +254,9 @@ public class FederatGUI extends AbstractFederat {
         this.fedamb = new Ambasador();
         fedamb.registerObjectInstanceCreatedListener((int theObject, int theObjectClass, String objectName) -> {
             if (theObjectClass == fedamb.klientClassHandle.getClassHandle()) {
-                log("Customer " + theObject + " entered, customers amount: " + customers.size());
                 customerObjectHandleToClassHandleMap.put(theObject, theObjectClass);
                 customers.add(theObject);
+                log("Customer " + theObject + " entered, customers amount: " + customers.size());
             } else if (theObjectClass == fedamb.kasaClassHandle.getClassHandle()) {
                 log("New checkout opened " + theObject);
                 checkoutObjectHandleToClassHandleMap.put(theObject, theObjectClass);
@@ -272,10 +274,7 @@ public class FederatGUI extends AbstractFederat {
         });
         fedamb.registerInteractionReceivedListener((int interactionClass, ReceivedInteraction theInteraction, byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) -> {
             if (interactionClass == fedamb.wejscieDoKolejkiClassHandle.getClassHandle()) {
-                int extractCustomerClassHandle = extractClassHandle(theInteraction);
-                boolean isPrivileged = extractPrivileged(theInteraction);
-                log("Customer " + extractCustomerClassHandle + " entered queue |U=" + isPrivileged);
-                customers.remove(new Integer(extractCustomerClassHandle));
+                reciveQueueEntered(theInteraction);
             }
             if (interactionClass == fedamb.obsluzonoKlientaClassHandle.getClassHandle()) {
                 double extractTime = extractBuyingTime(theInteraction);
@@ -290,6 +289,47 @@ public class FederatGUI extends AbstractFederat {
                 extractAndUpdateStatistics(theAttributes);
             }
         });
+    }
+
+    private void reciveQueueEntered(ReceivedInteraction theInteraction) {
+        log("Received wejscieDoKolejki");
+        try {
+            Klient customer = new Klient(fedamb.getFederateTime(), 0);
+            FomObjectDefinition<Integer, Integer> checkoutAndCustomerId = getCheckoutAndCustomerIdParameters(theInteraction, customer);
+
+            log("Customer " + customer.getId() + " entered queue in checkout " + checkoutAndCustomerId.getT1() + " with request id = " + customer.nrSprawy);
+            customers.remove(new Integer(customer.id));
+
+        } catch (Exception e) {
+            log(e.getMessage());
+        }
+    }
+
+    private FomObjectDefinition<Integer, Integer> getCheckoutAndCustomerIdParameters(ReceivedInteraction theInteraction, Klient customer) throws ArrayIndexOutOfBounds {
+        Integer checkoutId = -1;
+        Integer customerId = -1;
+        for (int i = 0; i < theInteraction.size(); i++) {
+            try {
+                Integer attributeHandle = theInteraction.getParameterHandle(i);
+                String nameFor = fedamb.wejscieDoKolejkiClassHandle.getNameFor(attributeHandle);
+                byte[] value = theInteraction.getValue(i);
+
+                if (nameFor.equalsIgnoreCase(NR_KASY)) {
+                    checkoutId = EncodingHelpers.decodeInt(value);
+                }  if (nameFor.equalsIgnoreCase(NR_KLIENTA)) {
+                    customerId = EncodingHelpers.decodeInt(value);
+                    customer.setId(customerId);
+                } if (nameFor.equalsIgnoreCase(NR_SPRAWY)) {
+                    customer.nrSprawy = EncodingHelpers.decodeInt(value);
+                }  if (nameFor.equalsIgnoreCase(UPRZYWILEJOWANY)) {
+                    customer.setPrivileged(EncodingHelpers.decodeBoolean(value));
+                }
+            } catch (ArrayIndexOutOfBounds e) {
+                log(e.getMessage());
+            }
+
+        }
+        return new FomObjectDefinition<>(checkoutId, customerId);
     }
 
     private void extractAndUpdateStatistics(ReflectedAttributes theAttributes) {
@@ -333,6 +373,19 @@ public class FederatGUI extends AbstractFederat {
         log("Checkout " + theObject + " updated: queue size: " + queueSize + " filled");
         FomObjectDefinition<Integer, Boolean> value = new FomObjectDefinition<>(queueSize, filled);
         checkoutObjectHandleToQueueSizeAndFilledMap.put(theObject, value);
+    }
+    private Integer extractNrSprawy(ReceivedInteraction theInteraction) {
+        Integer handle = -1;
+        for (int i = 0; i < theInteraction.size(); i++) {
+            try {
+                if (theInteraction.getParameterHandle(i) == fedamb.wejscieDoKolejkiClassHandle.getHandleFor(NR_SPRAWY)) {
+                    handle = EncodingHelpers.decodeInt(theInteraction.getValue(i));
+                }
+            } catch (ArrayIndexOutOfBounds e) {
+                log(e.getMessage());
+            }
+        }
+        return handle;
     }
     private boolean extractPrivileged(ReceivedInteraction theInteraction) {
         boolean handle = false;

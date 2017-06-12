@@ -75,7 +75,7 @@ public class FederatKasa extends AbstractFederat {
 
     private void sendBuyingFinishedInteraction(Klient finishedCustomer) {
         double serviceTime = finishedCustomer.getServiceTime();
-        log("Sending service time of " + serviceTime);
+        log("Sending service finished with " + serviceTime);
         SuppliedParameters parameters;
         try {
             parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
@@ -140,12 +140,13 @@ public class FederatKasa extends AbstractFederat {
     private void prepareCustomerAndUpdateCheckoutInRti(ReceivedInteraction theInteraction) {
         log("Received wejscieDoKolejki");
         try {
-            Klient customer = new Klient(fedamb.getFederateTime(), rand.nextInt(MAX_SERVICE_TIME - MIN_SERVICE_TIME + 1) + MIN_SERVICE_TIME);
+            Klient customer = new Klient(fedamb.getFederateTime(), 0);
             FomObjectDefinition<Integer, Integer> checkoutAndCustomerId = getCheckoutAndCustomerIdParameters(theInteraction, customer);
             Kasa checkout = checkoutObjectIdsToObjects.get(checkoutAndCustomerId.getT1());
 
             checkout.addCustomer(customer);
-            log("Customer " + customer.getId() + " entered queue in checkout " + checkoutAndCustomerId.getT1());
+            customer.setServiceTime(rand.nextInt(MAX_SERVICE_TIME - MIN_SERVICE_TIME)*customer.nrSprawy + MIN_SERVICE_TIME);
+            log("Customer " + customer.getId() + " entered queue in checkout " + checkoutAndCustomerId.getT1() + " with request id = " + customer.nrSprawy + " | service time = " + customer.getServiceTime());
             updateCheckoutInRti(checkoutAndCustomerId.getT1(), checkout);
         } catch (Exception e) {
             log(e.getMessage());
@@ -166,6 +167,8 @@ public class FederatKasa extends AbstractFederat {
                 }  if (nameFor.equalsIgnoreCase(NR_KLIENTA)) {
                     customerId = EncodingHelpers.decodeInt(value);
                     customer.setId(customerId);
+                } if (nameFor.equalsIgnoreCase(NR_SPRAWY)) {
+                    customer.nrSprawy = EncodingHelpers.decodeInt(value);
                 }  if (nameFor.equalsIgnoreCase(UPRZYWILEJOWANY)) {
                     customer.setPrivileged(EncodingHelpers.decodeBoolean(value));
                 }

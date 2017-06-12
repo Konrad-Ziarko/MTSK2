@@ -7,15 +7,6 @@ menedzer jak kolejki są za dlugie albo jak liczba kas = 0 powinien dodawac nowa
 menedzer powinien w losowych odstepach zamykac kase
 
 
-interakcja wejscie do kasy powinna przekazywac nr sprawy klienta
-Kasa powinna losowac czas obslugi zaleznie od nr sprawy
-gui powinno pokazywac (kiedy pojawia się nowy klient) nr jego sprawy
-
-
-
-
-
-
 
 klient odbiera interakcje obsluzonoKlienta i usuwa go z list
 
@@ -23,4 +14,4 @@ klient odbiera interakcje obsluzonoKlienta i usuwa go z list
 
 
 
-klient w losowych momentach powinien opuszczac kolejke
+klient w losowych momentach powinien opuszczac kolejke   / klient zniecierpliwiony opuszcz bank, redukcja kolejki podnosci mu cierpliwosc

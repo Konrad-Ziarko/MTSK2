@@ -24,6 +24,7 @@ public abstract class AbstractFederat {
     //Common Strings
     protected static final String NR_KASY = "nrKasy";
     protected static final String NR_KLIENTA = "nrKlienta";
+    protected static final String NR_SPRAWY = "nrSprawy";
     protected static final String POZYCJA_KOLEJKI = "pozycjaKolejki";
     protected static final String CZY_UPRZYWILEJOWANY = "czyUprzywilejowany";
     protected static final String RODZAJ_ZALATWIANEJ_SPRAWY = "rodzajZalatwianejSprawy";
@@ -334,6 +335,7 @@ public abstract class AbstractFederat {
                 rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KOLEJKI),
                 new FomObjectDefinition<>(NR_KLIENTA, Integer.class),
                 new FomObjectDefinition<>(NR_KASY, Integer.class),
+                new FomObjectDefinition<>(NR_SPRAWY, Integer.class),
                 new FomObjectDefinition<>(UPRZYWILEJOWANY, Boolean.class));
         rtiamb.publishInteractionClass(fedamb.wejscieDoKolejkiClassHandle.getClassHandle());
     }
@@ -342,6 +344,7 @@ public abstract class AbstractFederat {
                 rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KOLEJKI),
                 new FomObjectDefinition<>(NR_KLIENTA, Integer.class),
                 new FomObjectDefinition<>(NR_KASY, Integer.class),
+                new FomObjectDefinition<>(NR_SPRAWY, Integer.class),
                 new FomObjectDefinition<>(UPRZYWILEJOWANY, Boolean.class));
         rtiamb.subscribeInteractionClass(fedamb.wejscieDoKolejkiClassHandle.getClassHandle());
     }

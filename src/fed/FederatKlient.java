@@ -11,6 +11,7 @@ import shared.Klient;
 
 import java.util.Map.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class FederatKlient extends AbstractFederat {
     private static final String federateName = "FederatKlient";
@@ -134,6 +135,12 @@ public class FederatKlient extends AbstractFederat {
                 optionallySendQueueEnteredInteraction(customer, getShortestQueue());
             });
         });
+
+        /*List<Klient> tmpList = allCustomers.stream().collect(Collectors.toList());
+        tmpList.forEach(klient -> {
+
+        });*/
+
     }
 
     private void optionallySendQueueEnteredInteraction(Klient customer, Optional<Entry<Integer, Integer>> min) {
@@ -141,17 +148,18 @@ public class FederatKlient extends AbstractFederat {
             log("Customer " + customersObjectsToHandles.get(customer) + " entering queue in checkout " + entry.getKey());
             entry.setValue(entry.getValue() + 1);
             customer.queueId = entry.getKey();
-            sendQueueEnteredInteraction(customersObjectsToHandles.get(customer), entry.getKey(), customer.isPrivileged());
+            sendQueueEnteredInteraction(customersObjectsToHandles.get(customer), entry.getKey(), customer.nrSprawy, customer.isPrivileged());
             this.allCustomers.remove(customer);
         });
     }
 
-    private void sendQueueEnteredInteraction(Integer customerObjectId, Integer checkoutObjectId, boolean privileged) {
+    private void sendQueueEnteredInteraction(Integer customerObjectId, Integer checkoutObjectId, Integer nrSprawy, boolean privileged) {
         SuppliedParameters parameters;
         try {
             parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
             parameters.add(fedamb.wejscieDoKolejkiClassHandle.getHandleFor(NR_KASY), EncodingHelpers.encodeInt(checkoutObjectId));
             parameters.add(fedamb.wejscieDoKolejkiClassHandle.getHandleFor(NR_KLIENTA), EncodingHelpers.encodeInt(customerObjectId));
+            parameters.add(fedamb.wejscieDoKolejkiClassHandle.getHandleFor(NR_SPRAWY), EncodingHelpers.encodeInt(nrSprawy));
             parameters.add(fedamb.wejscieDoKolejkiClassHandle.getHandleFor(UPRZYWILEJOWANY), EncodingHelpers.encodeBoolean(privileged));
             rtiamb.sendInteraction(fedamb.wejscieDoKolejkiClassHandle.getClassHandle(), parameters, generateTag());
         } catch (RTIexception e) {
