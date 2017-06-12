@@ -127,8 +127,7 @@ public class FederatKlient extends AbstractFederat {
                 customersObjectsToHandles.remove(tmp);
                 customersHandlesToObjects.remove(nrKlienta);
             }
-           /* else if (interactionClass == fedamb.obsluzonoKlientaClassHandle.getClassHandle()) {
-                log("Customer has left bank");
+            else if (interactionClass == fedamb.obsluzonoKlientaClassHandle.getClassHandle()) {
                 int nrKlienta = -1;
                 for (int i = 0; i < theInteraction.size(); i++) {
                     int attributeHandle = 0;
@@ -142,13 +141,15 @@ public class FederatKlient extends AbstractFederat {
                     } catch (ArrayIndexOutOfBounds arrayIndexOutOfBounds) {
                         arrayIndexOutOfBounds.printStackTrace();
                     }
+                    log("Customer "+nrKlienta+" has left bank");
+
                 }
                 try {
                     rtiamb.deleteObjectInstance(nrKlienta, generateTag());
                 } catch (ObjectNotKnown | DeletePrivilegeNotHeld | FederateNotExecutionMember | SaveInProgress | RestoreInProgress | RTIinternalError | ConcurrentAccessAttempted objectNotKnown) {
                     objectNotKnown.printStackTrace();
                 }
-            }*/
+            }
         });
     }
 
@@ -280,7 +281,7 @@ public class FederatKlient extends AbstractFederat {
 
             subscribeWejscieDoKasy();
             subscribeNowyKlient();
-            //subscribeObsluzonoKlienta();
+            subscribeObsluzonoKlienta();
             subscribeSimStart();
             subscribeSimStop();
         } catch

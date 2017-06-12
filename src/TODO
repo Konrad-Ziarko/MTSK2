@@ -1,10 +1,6 @@
-statysyka musi obsluzyc interakcje wejscieDoKasyClassHandle
-
-
-
 menedzer jak kolejki są za dlugie albo jak liczba kas = 0 powinien dodawac nowa
 
-menedzer powinien w losowych odstepach zamykac kase
+menedzer powinien w losowych odstepach zamykac kase - najpierw trzeba zrobic zeby klienci wychodzili z kolejek
 
 
 

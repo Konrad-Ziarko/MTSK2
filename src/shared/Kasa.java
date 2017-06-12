@@ -10,10 +10,12 @@ import java.util.function.Consumer;
  */
 public class Kasa {
     private Integer checkoutId;
+    private boolean willBeClosed;
     public List<Klient> customersQueue;
     private Klient buyingCustomer;
 
     public Kasa(int checkoutId) {
+        this.willBeClosed = false;
         customersQueue = new LinkedList<>();
         this.checkoutId = checkoutId;
     }
@@ -47,7 +49,7 @@ public class Kasa {
     }
 
     public void updateCurrentBuyingCustomer(double federateTime, BiConsumer<Klient, Double> customerStartedBuyingAction) {
-        if (buyingCustomer == null && customersQueue.size() > 0) {
+        if (buyingCustomer == null && customersQueue.size() > 0 && !willBeClosed) {
             buyingCustomer = customersQueue.remove(0);
             double queueWaitingTime = federateTime - buyingCustomer.getOldFederateTime();
             buyingCustomer.setOldFederateTime(federateTime);
