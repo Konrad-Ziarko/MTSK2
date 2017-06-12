@@ -54,8 +54,8 @@ public abstract class AbstractFederat {
     protected static final String HLA_START_SIM = "HLAinteractionRoot.startSymulacji";
     protected static final String HLA_NOWY_KLIENT = "HLAinteractionRoot.nowyKlient";
 
-    protected int MAX_SERVICE_TIME = 8000;
-    protected int MIN_SERVICE_TIME = 4000;
+    protected int MAX_SERVICE_TIME = 800;
+    protected int MIN_SERVICE_TIME = 400;
 
     //
     public static final String FOM_PATH = "src/fed/bank.xml";

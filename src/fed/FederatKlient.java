@@ -11,7 +11,6 @@ import shared.Klient;
 
 import java.util.Map.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class FederatKlient extends AbstractFederat {
     private static final String federateName = "FederatKlient";
@@ -30,8 +29,6 @@ public class FederatKlient extends AbstractFederat {
 
 
     public static void main(String[] args) {
-
-
         new FederatKlient().runFederate();
     }
 
@@ -80,7 +77,6 @@ public class FederatKlient extends AbstractFederat {
                             queueSize = EncodingHelpers.decodeInt(value);
                         }
                     } catch (Exception e) {
-                        log("blad2");
                         log(e.getMessage());
                     }
                 }
@@ -127,12 +123,32 @@ public class FederatKlient extends AbstractFederat {
                         arrayIndexOutOfBounds.printStackTrace();
                     }
                 }
-                final int nrK = nrKlienta;
-
-                Klient tmp = customersHandlesToObjects.get(nrK);
+                Klient tmp = customersHandlesToObjects.get(nrKlienta);
                 customersObjectsToHandles.remove(tmp);
-                customersHandlesToObjects.remove(nrK);
+                customersHandlesToObjects.remove(nrKlienta);
             }
+           /* else if (interactionClass == fedamb.obsluzonoKlientaClassHandle.getClassHandle()) {
+                log("Customer has left bank");
+                int nrKlienta = -1;
+                for (int i = 0; i < theInteraction.size(); i++) {
+                    int attributeHandle = 0;
+                    try {
+                        attributeHandle = theInteraction.getParameterHandle(i);
+                        String nameFor = fedamb.obsluzonoKlientaClassHandle.getNameFor(attributeHandle);
+                        byte[] value = theInteraction.getValue(i);
+                        if (nameFor.equalsIgnoreCase(NR_KLIENTA)) {
+                            nrKlienta = EncodingHelpers.decodeInt(value);
+                        }
+                    } catch (ArrayIndexOutOfBounds arrayIndexOutOfBounds) {
+                        arrayIndexOutOfBounds.printStackTrace();
+                    }
+                }
+                try {
+                    rtiamb.deleteObjectInstance(nrKlienta, generateTag());
+                } catch (ObjectNotKnown | DeletePrivilegeNotHeld | FederateNotExecutionMember | SaveInProgress | RestoreInProgress | RTIinternalError | ConcurrentAccessAttempted objectNotKnown) {
+                    objectNotKnown.printStackTrace();
+                }
+            }*/
         });
     }
 
@@ -264,7 +280,7 @@ public class FederatKlient extends AbstractFederat {
 
             subscribeWejscieDoKasy();
             subscribeNowyKlient();
-
+            //subscribeObsluzonoKlienta();
             subscribeSimStart();
             subscribeSimStop();
         } catch

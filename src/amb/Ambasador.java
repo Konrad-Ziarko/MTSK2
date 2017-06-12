@@ -1,12 +1,8 @@
 package amb;
 
-import fom.AFomEntity;
 import fom.FomInteraction;
 import fom.FomObject;
-import hla.rti.EventRetractionHandle;
-import hla.rti.LogicalTime;
-import hla.rti.ReceivedInteraction;
-import hla.rti.ReflectedAttributes;
+import hla.rti.*;
 import hla.rti.jlc.NullFederateAmbassador;
 import org.portico.impl.hla13.types.DoubleTime;
 
@@ -89,7 +85,7 @@ public class Ambasador extends NullFederateAmbassador {
 
     public void receiveInteraction(int interactionClass, ReceivedInteraction theInteraction, byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) {
         String intType = "";
-        if (wejscieDoKolejkiClassHandle!=null && interactionClass == wejscieDoKolejkiClassHandle.getClassHandle())
+        /*if (wejscieDoKolejkiClassHandle!=null && interactionClass == wejscieDoKolejkiClassHandle.getClassHandle())
             intType = "wejscie do kolejki";
         else if (obsluzonoKlientaClassHandle!=null &&interactionClass == obsluzonoKlientaClassHandle.getClassHandle())
             intType = "obsluzonoKlienta";
@@ -107,6 +103,8 @@ public class Ambasador extends NullFederateAmbassador {
             intType = "otworzKase";
         else if (zamknijKaseClassHandle!=null &&interactionClass == zamknijKaseClassHandle.getClassHandle())
             intType = "zamknijKase";
+        */
+
 
         log("Received interaction of class " + intType + " id:"+ interactionClass);
 
@@ -190,8 +188,7 @@ public class Ambasador extends NullFederateAmbassador {
     }
 
     public interface ObjectInstanceRemovedListener {
-        public void objectInstanceRemoved(int theObject, byte[] userSuppliedTag, LogicalTime theTime,
-                                          EventRetractionHandle retractionHandle);
+        public void objectInstanceRemoved(int theObject, byte[] userSuppliedTag, LogicalTime theTime, EventRetractionHandle retractionHandle);
     }
 
     public interface ObjectInstanceCreatedListener {
@@ -199,13 +196,11 @@ public class Ambasador extends NullFederateAmbassador {
     }
 
     public interface InteractionReceivedListener {
-        public void notifyInteractionReceived(int interactionClass, ReceivedInteraction theInteraction, byte[] tag,
-                                              LogicalTime theTime, EventRetractionHandle eventRetractionHandle);
+        public void notifyInteractionReceived(int interactionClass, ReceivedInteraction theInteraction, byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle);
     }
 
     public interface AttributesUpdatedListener {
-        public void notifyAttributesUpdated(int theObject, ReflectedAttributes theAttributes, byte[] tag, Double time,
-                                            EventRetractionHandle retractionHandle);
+        public void notifyAttributesUpdated(int theObject, ReflectedAttributes theAttributes, byte[] tag, Double time, EventRetractionHandle retractionHandle);
     }
 
     public void timeRegulationEnabled(LogicalTime theFederateTime) {

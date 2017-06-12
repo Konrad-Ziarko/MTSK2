@@ -5,7 +5,6 @@ import fom.FomObjectDefinition;
 import hla.rti.*;
 import hla.rti.jlc.EncodingHelpers;
 import hla.rti.jlc.RtiFactoryFactory;
-import shared.Kasa;
 import shared.Klient;
 
 import javax.swing.*;
@@ -475,7 +474,6 @@ public class FederatGUI extends AbstractFederat {
             subscribeOpuszczenieKolejki();
 
             publishOtworzKase();
-
 
             publishNowyKlient();
 
