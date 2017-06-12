@@ -22,7 +22,9 @@ public class FederatKlient extends AbstractFederat {
 
     private boolean shouldGeneratePrivileged = false;
 
-    private List<Klient> allCustomers = new ArrayList<>();
+    private List<Klient> waitingCustomers = new ArrayList<>();
+    private List<Klient> inQueueCustomers = new ArrayList<>();
+
     private Map<Integer, Integer> queuesSizes = new HashMap<>();
     private Map<Integer, Klient> customersHandlesToObjects = new HashMap<>();
     private Map<Klient, Integer> customersObjectsToHandles = new HashMap<>();
@@ -106,8 +108,8 @@ public class FederatKlient extends AbstractFederat {
                         arrayIndexOutOfBounds.printStackTrace();
                     }
                 }
+
             } else if (interactionClass == fedamb.wejscieDoKasyClassHandle.getClassHandle()) {
-                log("Customer has entered checkout");
                 int nrKasy = -1;
                 int nrKlienta = -1;
                 for (int i = 0; i < theInteraction.size(); i++) {
@@ -116,16 +118,35 @@ public class FederatKlient extends AbstractFederat {
                         attributeHandle = theInteraction.getParameterHandle(i);
                         String nameFor = fedamb.wejscieDoKasyClassHandle.getNameFor(attributeHandle);
                         byte[] value = theInteraction.getValue(i);
+
                         if (nameFor.equalsIgnoreCase(NR_KLIENTA)) {
                             nrKlienta = EncodingHelpers.decodeInt(value);
+                        }
+                        if (nameFor.equalsIgnoreCase(NR_KASY)) {
+                            nrKasy = EncodingHelpers.decodeInt(value);
                         }
                     } catch (ArrayIndexOutOfBounds arrayIndexOutOfBounds) {
                         arrayIndexOutOfBounds.printStackTrace();
                     }
                 }
+                log("Customer "+nrKlienta+" has entered checkout "+nrKasy);
+
+                queuesSizes.put(nrKasy, queuesSizes.get(nrKasy)-1);
+
                 Klient tmp = customersHandlesToObjects.get(nrKlienta);
+                inQueueCustomers.remove(tmp);
                 customersObjectsToHandles.remove(tmp);
                 customersHandlesToObjects.remove(nrKlienta);
+
+                for (Klient inQueueCustomer : inQueueCustomers) {
+                    int start=0;
+                    if(inQueueCustomer.getQueueId() == nrKasy){
+                        start = inQueueCustomer.getQueuePosition();
+                        inQueueCustomer.setQueuePosition(inQueueCustomer.getQueuePosition()-1);
+                    }
+                    log("Customer "+inQueueCustomer.getId()+" has moved from " +start+ " to " + inQueueCustomer.getQueuePosition());
+
+                }
             }
             else if (interactionClass == fedamb.obsluzonoKlientaClassHandle.getClassHandle()) {
                 int nrKlienta = -1;
@@ -138,25 +159,28 @@ public class FederatKlient extends AbstractFederat {
                         if (nameFor.equalsIgnoreCase(NR_KLIENTA)) {
                             nrKlienta = EncodingHelpers.decodeInt(value);
                         }
+
                     } catch (ArrayIndexOutOfBounds arrayIndexOutOfBounds) {
                         arrayIndexOutOfBounds.printStackTrace();
                     }
-                    log("Customer "+nrKlienta+" has left bank");
-
                 }
-                try {
-                    rtiamb.deleteObjectInstance(nrKlienta, generateTag());
-                } catch (ObjectNotKnown | DeletePrivilegeNotHeld | FederateNotExecutionMember | SaveInProgress | RestoreInProgress | RTIinternalError | ConcurrentAccessAttempted objectNotKnown) {
-                    objectNotKnown.printStackTrace();
+                if (nrKlienta!=-1) {
+                    log("Customer " + nrKlienta + " has left bank ?");
+                    final int nrK = nrKlienta;
+                    queuedTasks.add(() -> {
+                        try {
+                            rtiamb.deleteObjectInstance(nrK, generateTag());
+                        } catch (ObjectNotKnown | DeletePrivilegeNotHeld | FederateNotExecutionMember | RestoreInProgress | SaveInProgress | ConcurrentAccessAttempted | RTIinternalError objectNotKnown) {
+                            objectNotKnown.printStackTrace();
+                        }
+                    });
                 }
             }
         });
     }
 
     private Optional<Entry<Integer, Integer>> getShortestQueue() {
-        Optional<Entry<Integer, Integer>> min = queuesSizes.entrySet().stream().min((entry1, entry2) -> {
-            return entry1.getValue() - entry2.getValue();
-        });
+        Optional<Entry<Integer, Integer>> min = queuesSizes.entrySet().stream().min(Comparator.comparingInt(Entry::getValue));
         return min;
     }
 
@@ -166,10 +190,10 @@ public class FederatKlient extends AbstractFederat {
 
     private void updateCustomersWithNewFederateTime(double newFederateTime) {
 
-        allCustomers.forEach(customer -> {
+        waitingCustomers.forEach(customer -> {
             customer.updateWithNewFederateTime(newFederateTime);
         });
-        allCustomers.forEach(customer -> {
+        waitingCustomers.forEach(customer -> {
             submitNewTask(() -> {
                 optionallySendQueueEnteredInteraction(customer, getShortestQueue());
             });
@@ -187,10 +211,10 @@ public class FederatKlient extends AbstractFederat {
                         parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
                         parameters.add(fedamb.opuszczenieKolejkiClassHandle.getHandleFor(NR_KASY), EncodingHelpers.encodeInt(klient.getQueueId()));
                         parameters.add(fedamb.opuszczenieKolejkiClassHandle.getHandleFor(NR_KLIENTA), EncodingHelpers.encodeInt(klient.getId()));
-                        allCustomers.remove(klient);
-                        for (int i = allCustomers.size() - 1; i >= 0; i--) {
-                            if(allCustomers.get(i).getId() == klient.getId()){
-                                allCustomers.remove(i);
+                        waitingCustomers.remove(klient);
+                        for (int i = waitingCustomers.size() - 1; i >= 0; i--) {
+                            if(waitingCustomers.get(i).getId() == klient.getId()){
+                                waitingCustomers.remove(i);
                             }
                         }
                         klient.setHasLeft(true);
@@ -219,11 +243,15 @@ public class FederatKlient extends AbstractFederat {
 
     private void optionallySendQueueEnteredInteraction(Klient customer, Optional<Entry<Integer, Integer>> min) {
         min.ifPresent(entry -> {
-            log("Customer " + customersObjectsToHandles.get(customer) + " entering queue in checkout " + entry.getKey());
+
             entry.setValue(entry.getValue() + 1);
             customer.setQueueId(entry.getKey());
+            customer.setQueuePosition(entry.getValue());
+            log("Customer " + customersObjectsToHandles.get(customer) + " entering queue in checkout " + entry.getKey() + " on "+ customer.getQueuePosition()+" position");
+
             sendQueueEnteredInteraction(customersObjectsToHandles.get(customer), entry.getKey(), customer.getNrSprawy(), customer.isPrivileged());
-            this.allCustomers.remove(customer);
+            this.waitingCustomers.remove(customer);
+            this.inQueueCustomers.add(customer);
         });
     }
 
@@ -249,7 +277,7 @@ public class FederatKlient extends AbstractFederat {
         Klient customer = new Klient(oldFederateTime, rand.nextInt(MAX_SERVICE_TIME - MIN_SERVICE_TIME + 1) + MIN_SERVICE_TIME);
         customer.setPrivileged(isPrivileged);
         //customer.patienceTime = rand.nextDouble() * (1000) + 800;
-        allCustomers.add(customer);
+        waitingCustomers.add(customer);
         try {
             int customerHandle = registerRtiCustomer(customer);
             customer.setId(customerHandle);
