@@ -20,8 +20,9 @@ public class Kasa {
         this.checkoutId = checkoutId;
     }
 
-    public void removeCustomerFromQueue(Integer k){
+    public void removeCustomerFromQueue(Klient k){
         customersQueue.remove(k);
+        //customersQueue.removeIf(klient -> klient.getId()==k);
     }
 
     public int getQueueSize() {

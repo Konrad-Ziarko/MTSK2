@@ -283,7 +283,7 @@ public class FederatGUI extends AbstractFederat {
                 int nrKasy = -1;
                 int nrKlienta = -1;
                 for (int i = 0; i < theInteraction.size(); i++) {
-                    int attributeHandle = 0;
+                    int attributeHandle;
                     try {
                         attributeHandle = theInteraction.getParameterHandle(i);
                         String nameFor = fedamb.wejscieDoKasyClassHandle.getNameFor(attributeHandle);
@@ -299,6 +299,27 @@ public class FederatGUI extends AbstractFederat {
                     }
                 }
                 log("Customer " + nrKlienta + " entered checkout " + nrKasy);
+            }
+             if (interactionClass == fedamb.opuszczenieKolejkiClassHandle.getClassHandle()){
+
+                Integer checkoutId = -1;
+                Integer customerId = -1;
+                for (int i = 0; i < theInteraction.size(); i++) {
+                    try {
+                        Integer attributeHandle = theInteraction.getParameterHandle(i);
+                        String nameFor = fedamb.opuszczenieKolejkiClassHandle.getNameFor(attributeHandle);
+                        byte[] value = theInteraction.getValue(i);
+                        if (nameFor.equalsIgnoreCase(NR_KASY)) {
+                            checkoutId = EncodingHelpers.decodeInt(value);
+                        }  if (nameFor.equalsIgnoreCase(NR_KLIENTA)) {
+                            customerId = EncodingHelpers.decodeInt(value);
+                        }
+                    } catch (ArrayIndexOutOfBounds e) {
+                        log(e.getMessage());
+                    }
+                }
+                log("Customer " + customerId + " has left the queue <tmp left bank> because was waiting too long in checkout " + checkoutId);
+
             }
         });
         fedamb.registerAttributesUpdatedListener((theObject, theAttributes, tag, theTime, whateverMan) -> {
@@ -316,7 +337,7 @@ public class FederatGUI extends AbstractFederat {
             FomObjectDefinition<Integer, Integer> checkoutAndCustomerId = getCheckoutAndCustomerIdParameters(theInteraction, customer);
 
             log("Customer " + customer.getId() + " entered queue in checkout " + checkoutAndCustomerId.getT1() + " with request id = " + customer.getNrSprawy());
-            customers.remove(new Integer(customer.getId()));
+            customers.remove(customer.getId());
 
         } catch (Exception e) {
             log(e.getMessage());

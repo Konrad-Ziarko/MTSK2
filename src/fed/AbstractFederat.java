@@ -282,14 +282,14 @@ public abstract class AbstractFederat {
 
     public void publishOpuszczenieKolejki() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
         fedamb.opuszczenieKolejkiClassHandle = prepareFomInteraction(
-                rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KOLEJKI),
+                rtiamb.getInteractionClassHandle(HLA_OPUSZCENIE_KOLEJKI),
                 new FomObjectDefinition<>(NR_KLIENTA, Integer.class),
                 new FomObjectDefinition<>(NR_KASY, Integer.class));
         rtiamb.publishInteractionClass(fedamb.opuszczenieKolejkiClassHandle.getClassHandle());
     }
     public void subscribeOpuszczenieKolejki() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
         fedamb.opuszczenieKolejkiClassHandle = prepareFomInteraction(
-                rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KOLEJKI),
+                rtiamb.getInteractionClassHandle(HLA_OPUSZCENIE_KOLEJKI),
                 new FomObjectDefinition<>(NR_KLIENTA, Integer.class),
                 new FomObjectDefinition<>(NR_KASY, Integer.class));
         rtiamb.subscribeInteractionClass(fedamb.opuszczenieKolejkiClassHandle.getClassHandle());

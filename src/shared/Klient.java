@@ -11,6 +11,7 @@ public class Klient {
     public void setId (Integer id){
         this.id = id;
     }
+    private Double patienceTime;
     private Integer queueId;
     private Integer queuePosition;
     private Double oldFederateTime;
@@ -24,7 +25,12 @@ public class Klient {
         this.serviceTime = (double) serviceTime;
         privileged = false;
         queuePosition = -1;
+        patienceTime = 500.0;
         this.nrSprawy = new Random().nextInt(10)+1;
+    }
+
+    public boolean wantsToLeave(double newFederateTime){
+        return newFederateTime - oldFederateTime >= patienceTime;
     }
 
     public double getOldFederateTime() {

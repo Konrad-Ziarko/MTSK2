@@ -59,7 +59,6 @@ public class FederatKlient extends AbstractFederat {
                 updateCustomersWithNewFederateTime(federateTime);
             }
             advanceTime(timeStep);
-
         }
     }
 
@@ -198,6 +197,37 @@ public class FederatKlient extends AbstractFederat {
                 optionallySendQueueEnteredInteraction(customer, getShortestQueue());
             });
         });
+        submitNewTask(() -> {
+            for (int i = inQueueCustomers.size() - 1; i >= 0; i--) {
+                Klient tmp = inQueueCustomers.get(i);
+
+                if(tmp!=null && tmp.wantsToLeave(newFederateTime)){
+                    log("Customer "+tmp.getId()+" was impatient and has left the bank <tmp>");
+
+                    //queuesSizes.put(inQueueCustomer.getQueueId(), queuesSizes.get(inQueueCustomer.getQueueId())-1);
+
+                    inQueueCustomers.remove(tmp);
+                    customersObjectsToHandles.remove(tmp);
+                    customersHandlesToObjects.remove(tmp.getId());
+
+                    SuppliedParameters parameters;
+                    try {
+                        parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
+                        parameters.add(fedamb.opuszczenieKolejkiClassHandle.getHandleFor(NR_KASY), EncodingHelpers.encodeInt(tmp.getQueueId()));
+                        parameters.add(fedamb.opuszczenieKolejkiClassHandle.getHandleFor(NR_KLIENTA), EncodingHelpers.encodeInt(tmp.getId()));
+                        rtiamb.sendInteraction(fedamb.opuszczenieKolejkiClassHandle.getClassHandle(), parameters, generateTag());
+                        try {
+                            rtiamb.deleteObjectInstance(tmp.getId(), generateTag());
+                        } catch (ObjectNotKnown | DeletePrivilegeNotHeld | FederateNotExecutionMember | RestoreInProgress | SaveInProgress | ConcurrentAccessAttempted | RTIinternalError objectNotKnown) {
+                            objectNotKnown.printStackTrace();
+                        }
+                    } catch (RTIexception e) {
+                        log("Couldn't send queue entered interaction, because: " + e.getMessage());
+                    }
+                }
+            }
+        });
+
         /*submitNewTask(() -> {
             Map<Klient, Integer> tmpList = customersObjectsToHandles.entrySet().stream().collect(Collectors.toMap(o -> o.getKey(), o -> o.getValue()));
 
