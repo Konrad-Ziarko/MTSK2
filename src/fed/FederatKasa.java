@@ -43,7 +43,7 @@ public class FederatKasa extends AbstractFederat {
                     double federateTime = fedamb.getFederateTime();
                     checkout.updateCurrentBuyingCustomer(federateTime, (buyingCustomer, waitingTime) -> {
                         log(federateTime + " " + buyingCustomer + " started being serviced after waiting " + waitingTime);
-                        sendBuyingStartedInteraction(buyingCustomer.id, waitingTime);
+                        sendBuyingStartedInteraction(buyingCustomer.getId(), waitingTime);
                         try {
                             updateCheckoutInRti(checkout.getCheckoutId(), checkout);
                         } catch (Exception e) {
@@ -67,6 +67,7 @@ public class FederatKasa extends AbstractFederat {
             parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
             parameters.add(fedamb.wejscieDoKasyClassHandle.getHandleFor(CZAS_CZEKANIA_NA_OBSLUGE), EncodingHelpers.encodeDouble(waitingTime));
             parameters.add(fedamb.wejscieDoKasyClassHandle.getHandleFor(NR_KLIENTA), EncodingHelpers.encodeInt(klient));
+            //parameters.add(fedamb.wejscieDoKasyClassHandle.getHandleFor(NR_KLIENTA), EncodingHelpers.encodeInt());
             rtiamb.sendInteraction(fedamb.wejscieDoKasyClassHandle.getClassHandle(), parameters, generateTag());
         } catch (RTIexception e) {
             log("Couldn't send service started interaction, because: " + e.getMessage());
@@ -80,7 +81,7 @@ public class FederatKasa extends AbstractFederat {
         try {
             parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
             parameters.add(fedamb.obsluzonoKlientaClassHandle.getHandleFor(CZAS_OBSLUGI), EncodingHelpers.encodeDouble(serviceTime));
-            parameters.add(fedamb.obsluzonoKlientaClassHandle.getHandleFor(NR_KLIENTA), EncodingHelpers.encodeInt(finishedCustomer.id));
+            parameters.add(fedamb.obsluzonoKlientaClassHandle.getHandleFor(NR_KLIENTA), EncodingHelpers.encodeInt(finishedCustomer.getId()));
 
             rtiamb.sendInteraction(fedamb.obsluzonoKlientaClassHandle.getClassHandle(), parameters, generateTag());
         } catch (RTIexception e) {
@@ -108,7 +109,35 @@ public class FederatKasa extends AbstractFederat {
             } else if (interactionClass == fedamb.stopSymulacjiClassHandle.getClassHandle()) {
                 log("Stop interaction received");
                 fedamb.running = false;
-            }
+            } /*else if (interactionClass == fedamb.opuszczenieKolejkiClassHandle.getClassHandle()){
+
+                Integer checkoutId = -1;
+                Integer customerId = -1;
+                for (int i = 0; i < theInteraction.size(); i++) {
+                    try {
+                        Integer attributeHandle = theInteraction.getParameterHandle(i);
+                        String nameFor = fedamb.opuszczenieKolejkiClassHandle.getNameFor(attributeHandle);
+                        byte[] value = theInteraction.getValue(i);
+                        if (nameFor.equalsIgnoreCase(NR_KASY)) {
+                            checkoutId = EncodingHelpers.decodeInt(value);
+                        }  if (nameFor.equalsIgnoreCase(NR_KLIENTA)) {
+                            customerId = EncodingHelpers.decodeInt(value);
+                        }
+                    } catch (ArrayIndexOutOfBounds e) {
+                        log(e.getMessage());
+                    }
+                }
+                final int checkoutID = checkoutId;
+                final int customerID = customerId;
+                checkoutObjectIdsToObjects.forEach((integer, kasa) -> {
+                    if (integer == checkoutID){
+                        kasa.customersQueue.removeIf(klient -> klient.getId() == customerID);
+                        log("Usunięto klienta nr = " + customerID + " z kasy nr " + checkoutID);
+                        updateCheckoutInRti(checkoutID, checkoutObjectIdsToObjects.get(checkoutID));
+                    }
+                });
+
+            }*/
         });
     }
 
@@ -145,8 +174,8 @@ public class FederatKasa extends AbstractFederat {
             Kasa checkout = checkoutObjectIdsToObjects.get(checkoutAndCustomerId.getT1());
 
             checkout.addCustomer(customer);
-            customer.setServiceTime(rand.nextInt(MAX_SERVICE_TIME - MIN_SERVICE_TIME)*customer.nrSprawy + MIN_SERVICE_TIME);
-            log("Customer " + customer.getId() + " entered queue in checkout " + checkoutAndCustomerId.getT1() + " with request id = " + customer.nrSprawy + " | service time = " + customer.getServiceTime());
+            customer.setServiceTime(rand.nextInt(MAX_SERVICE_TIME - MIN_SERVICE_TIME)*customer.getNrSprawy() + MIN_SERVICE_TIME);
+            log("Customer " + customer.getId() + " entered queue in checkout " + checkoutAndCustomerId.getT1() + " with request id = " + customer.getNrSprawy() + " | service time = " + customer.getServiceTime());
             updateCheckoutInRti(checkoutAndCustomerId.getT1(), checkout);
         } catch (Exception e) {
             log(e.getMessage());
@@ -168,7 +197,7 @@ public class FederatKasa extends AbstractFederat {
                     customerId = EncodingHelpers.decodeInt(value);
                     customer.setId(customerId);
                 } if (nameFor.equalsIgnoreCase(NR_SPRAWY)) {
-                    customer.nrSprawy = EncodingHelpers.decodeInt(value);
+                    customer.setNrSprawy(EncodingHelpers.decodeInt(value));
                 }  if (nameFor.equalsIgnoreCase(UPRZYWILEJOWANY)) {
                     customer.setPrivileged(EncodingHelpers.decodeBoolean(value));
                 }
@@ -191,7 +220,7 @@ public class FederatKasa extends AbstractFederat {
 
             subscribeOtworzKase();
             subscribeZamknijKase();
-
+            subscribeOpuszczenieKolejki();
             subscribeWejscieDoKolejki();
 
             subscribeSimStop();

@@ -265,11 +265,10 @@ public class FederatGUI extends AbstractFederat {
                 statisticsObjectHandle = theObject;
             }
         });
-        fedamb.registerObjectInstanceRemovedListener((int theObject, byte[] userSuppliedTag, LogicalTime theTime,
-                                                      EventRetractionHandle retractionHandle) -> {
+        fedamb.registerObjectInstanceRemovedListener((int theObject, byte[] userSuppliedTag, LogicalTime theTime, EventRetractionHandle retractionHandle) -> {
             if (customerObjectHandleToClassHandleMap.get(theObject) == fedamb.klientClassHandle.getClassHandle()) {
                 customers.remove(new Integer(theObject));
-                log("Customer " + theObject + " removed");
+                log("Customer " + theObject + " left bank");
             }
         });
         fedamb.registerInteractionReceivedListener((int interactionClass, ReceivedInteraction theInteraction, byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) -> {
@@ -280,6 +279,27 @@ public class FederatGUI extends AbstractFederat {
                 double extractTime = extractBuyingTime(theInteraction);
                 int extractCustomer = extractCustomerId(theInteraction);
                 log("Customer "+extractCustomer+" left checkout after " + extractTime + " time");
+            }
+            if (interactionClass == fedamb.wejscieDoKasyClassHandle.getClassHandle()){
+                int nrKasy = -1;
+                int nrKlienta = -1;
+                for (int i = 0; i < theInteraction.size(); i++) {
+                    int attributeHandle = 0;
+                    try {
+                        attributeHandle = theInteraction.getParameterHandle(i);
+                        String nameFor = fedamb.wejscieDoKasyClassHandle.getNameFor(attributeHandle);
+                        byte[] value = theInteraction.getValue(i);
+                        //if (nameFor.equalsIgnoreCase(NR_KASY)) {
+                        //    nrKasy = EncodingHelpers.decodeInt(value);
+                        //}
+                        if (nameFor.equalsIgnoreCase(NR_KLIENTA)) {
+                            nrKlienta = EncodingHelpers.decodeInt(value);
+                        }
+                    } catch (ArrayIndexOutOfBounds arrayIndexOutOfBounds) {
+                        arrayIndexOutOfBounds.printStackTrace();
+                    }
+                }
+                log("Customer " + nrKlienta + " entered checkout " + nrKasy);
             }
         });
         fedamb.registerAttributesUpdatedListener((theObject, theAttributes, tag, theTime, whateverMan) -> {
@@ -297,8 +317,8 @@ public class FederatGUI extends AbstractFederat {
             Klient customer = new Klient(fedamb.getFederateTime(), 0);
             FomObjectDefinition<Integer, Integer> checkoutAndCustomerId = getCheckoutAndCustomerIdParameters(theInteraction, customer);
 
-            log("Customer " + customer.getId() + " entered queue in checkout " + checkoutAndCustomerId.getT1() + " with request id = " + customer.nrSprawy);
-            customers.remove(new Integer(customer.id));
+            log("Customer " + customer.getId() + " entered queue in checkout " + checkoutAndCustomerId.getT1() + " with request id = " + customer.getNrSprawy());
+            customers.remove(new Integer(customer.getId()));
 
         } catch (Exception e) {
             log(e.getMessage());
@@ -320,7 +340,7 @@ public class FederatGUI extends AbstractFederat {
                     customerId = EncodingHelpers.decodeInt(value);
                     customer.setId(customerId);
                 } if (nameFor.equalsIgnoreCase(NR_SPRAWY)) {
-                    customer.nrSprawy = EncodingHelpers.decodeInt(value);
+                    customer.setNrSprawy( EncodingHelpers.decodeInt(value));
                 }  if (nameFor.equalsIgnoreCase(UPRZYWILEJOWANY)) {
                     customer.setPrivileged(EncodingHelpers.decodeBoolean(value));
                 }
@@ -450,11 +470,10 @@ public class FederatGUI extends AbstractFederat {
             subscribeKasa();
             subscribeKlient();
             subscribeStatystyka();
-
+            subscribeWejscieDoKasy();
             subscribeWejscieDoKolejki();
             subscribeObsluzonoKlienta();
-
-            subscribeWejscieDoKasy();
+            subscribeOpuszczenieKolejki();
 
             publishOtworzKase();
 

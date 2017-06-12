@@ -11,7 +11,11 @@ menedzer powinien w losowych odstepach zamykac kase
 klient odbiera interakcje obsluzonoKlienta i usuwa go z list
 
 
+niech kasa informuje do jakiej kasy wszedl klient w wysylaniu interakcji
 
+kasa odbiera interakcje opuszczenie kolejki i zmniejsza dlugosc tej kolejki
+
+klient odbiera wyjscie z kasy i usuwa klienta z rti i kolejek
 
 
 klient w losowych momentach powinien opuszczac kolejke   / klient zniecierpliwiony opuszcz bank, redukcja kolejki podnosci mu cierpliwosc

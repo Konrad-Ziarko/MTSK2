@@ -7,16 +7,16 @@ import java.util.Random;
  */
 public class Klient {
 
-    public Integer id;
+    private Integer id;
     public void setId (Integer id){
         this.id = id;
     }
-    public Integer queueId;
+    private Integer queueId;
     private Double oldFederateTime;
     private Double serviceTime;
     private Boolean hasServiceFinished;
     private Boolean privileged;
-    public Integer nrSprawy;
+    private Integer nrSprawy;
 
     public Klient(double oldFederateTime, int serviceTime) {
         this.oldFederateTime = oldFederateTime;
@@ -25,11 +25,9 @@ public class Klient {
         this.nrSprawy = new Random().nextInt(10)+1;
     }
 
-
     public double getOldFederateTime() {
         return oldFederateTime;
     }
-
 
     public Double getServiceTime() {
         return serviceTime;
@@ -63,5 +61,21 @@ public class Klient {
 
     public void setServiceTime(double serviceTime) {
         this.serviceTime = serviceTime;
+    }
+
+    public Integer getQueueId() {
+        return queueId;
+    }
+
+    public void setQueueId(Integer queueId) {
+        this.queueId = queueId;
+    }
+
+    public Integer getNrSprawy() {
+        return nrSprawy;
+    }
+
+    public void setNrSprawy(int nrSprawy) {
+        this.nrSprawy = nrSprawy;
     }
 }

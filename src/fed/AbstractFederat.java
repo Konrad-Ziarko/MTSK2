@@ -283,21 +283,23 @@ public abstract class AbstractFederat {
     public void publishOpuszczenieKolejki() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
         fedamb.opuszczenieKolejkiClassHandle = prepareFomInteraction(
                 rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KOLEJKI),
-                new FomObjectDefinition<>(NR_KLIENTA, Integer.class));
+                new FomObjectDefinition<>(NR_KLIENTA, Integer.class),
+                new FomObjectDefinition<>(NR_KASY, Integer.class));
         rtiamb.publishInteractionClass(fedamb.opuszczenieKolejkiClassHandle.getClassHandle());
     }
     public void subscribeOpuszczenieKolejki() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
         fedamb.opuszczenieKolejkiClassHandle = prepareFomInteraction(
                 rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KOLEJKI),
-                new FomObjectDefinition<>(NR_KLIENTA, Integer.class));
+                new FomObjectDefinition<>(NR_KLIENTA, Integer.class),
+                new FomObjectDefinition<>(NR_KASY, Integer.class));
         rtiamb.subscribeInteractionClass(fedamb.opuszczenieKolejkiClassHandle.getClassHandle());
     }
 
     public void subscribeStatystyka() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ObjectClassNotDefined, ConcurrentAccessAttempted, AttributeNotDefined, RestoreInProgress, SaveInProgress {
         fedamb.statisticsClassHandle = prepareFomObject(rtiamb.getObjectClassHandle(HLA_STATYSTYKA),
-                new FomObjectDefinition<>("sredniCzasObslugi", Double.class),
-                new FomObjectDefinition<>("sredniCzasOczekiwania", Double.class),
-                new FomObjectDefinition<>("sredniaDlugoscKolejki", Double.class));
+                new FomObjectDefinition<>(SREDNI_CZAS_OBSLUGI, Double.class),
+                new FomObjectDefinition<>(SREDNI_CZAS_OCZEKIWANIA, Double.class),
+                new FomObjectDefinition<>(SREDNIA_DLUGOSC_KOLEJKI, Double.class));
         rtiamb.subscribeObjectClassAttributes(fedamb.statisticsClassHandle.getClassHandle(), fedamb.statisticsClassHandle.createAttributeHandleSet());
     }
 
@@ -353,6 +355,7 @@ public abstract class AbstractFederat {
         fedamb.wejscieDoKasyClassHandle = prepareFomInteraction(
                 rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KASY),
                 new FomObjectDefinition<>(CZAS_CZEKANIA_NA_OBSLUGE, Float.class),
+                //new FomObjectDefinition<>(NR_KASY, Float.class),
                 new FomObjectDefinition<>(NR_KLIENTA, Integer.class));
         rtiamb.publishInteractionClass(fedamb.wejscieDoKasyClassHandle.getClassHandle());
     }
@@ -360,6 +363,7 @@ public abstract class AbstractFederat {
         fedamb.wejscieDoKasyClassHandle = prepareFomInteraction(
                 rtiamb.getInteractionClassHandle(HLA_WEJSCIE_DO_KASY),
                 new FomObjectDefinition<>(CZAS_CZEKANIA_NA_OBSLUGE, Float.class),
+                //new FomObjectDefinition<>(NR_KASY, Float.class),
                 new FomObjectDefinition<>(NR_KLIENTA, Integer.class));
         rtiamb.subscribeInteractionClass(fedamb.wejscieDoKasyClassHandle.getClassHandle());
     }

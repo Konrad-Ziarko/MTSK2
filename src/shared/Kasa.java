@@ -19,7 +19,7 @@ public class Kasa {
     }
 
     public void removeCustomerFromQueue(Integer k){
-
+        customersQueue.remove(k);
     }
 
     public int getQueueSize() {
