@@ -14,7 +14,7 @@ import java.util.*;
  * Created by konrad on 5/28/17.
  */
 public class FederatKasa extends AbstractFederat {
-    private static final String federateName = "KasaFederate";
+    private static final String federateName = "FederateKasa";
     private static Random rand = new Random();
 
 
@@ -56,6 +56,7 @@ public class FederatKasa extends AbstractFederat {
                         sendBuyingFinishedInteraction(finishedCustomer);
                     });
                 });
+                checkoutObjectIdsToObjects.entrySet().removeIf(entry -> entry.getValue().willBeClosed && entry.getValue().customersQueue.size()==0 &&  entry.getValue().getCurrentCustomer()==null);
             }
             advanceTime(timeStep);
         }
@@ -110,7 +111,32 @@ public class FederatKasa extends AbstractFederat {
             } else if (interactionClass == fedamb.stopSymulacjiClassHandle.getClassHandle()) {
                 log("Stop interaction received");
                 fedamb.running = false;
-            } else if (interactionClass == fedamb.opuszczenieKolejkiClassHandle.getClassHandle()){
+            } else if (interactionClass == fedamb.otworzKaseClassHandle.getClassHandle()) {
+                log("Recived open checkout interaction");
+                initiateNewCheckout();
+            }
+            else if (interactionClass == fedamb.zamknijKaseClassHandle.getClassHandle()) {
+                int nrKasy = -1;
+                for (int i = 0; i < theInteraction.size(); i++) {
+                    int attributeHandle;
+                    try {
+                        attributeHandle = theInteraction.getParameterHandle(i);
+                        String nameFor = fedamb.zamknijKaseClassHandle.getNameFor(attributeHandle);
+                        byte[] value = theInteraction.getValue(i);
+                        if (nameFor.equalsIgnoreCase(NR_KASY)) {
+                            nrKasy = EncodingHelpers.decodeInt(value);
+                        }
+                    } catch (ArrayIndexOutOfBounds arrayIndexOutOfBounds) {
+                        arrayIndexOutOfBounds.printStackTrace();
+                    }
+                }
+                if( nrKasy!=-1) {
+                    log("Recived close checkout nr " + nrKasy + " interaction | Checkout will be closed when last customer leaves");
+                    checkoutObjectIdsToObjects.get(nrKasy).setWillBeClosed(true);
+                }
+            }
+
+            else if (interactionClass == fedamb.opuszczenieKolejkiClassHandle.getClassHandle()){
                 submitNewTask(() -> {
                     Integer checkoutId = -1;
                     Integer customerId = -1;
@@ -125,7 +151,7 @@ public class FederatKasa extends AbstractFederat {
                                 customerId = EncodingHelpers.decodeInt(value);
                             }
                         } catch (ArrayIndexOutOfBounds e) {
-                            log(e.getMessage());
+                            log(12+""+e.getMessage());
                         }
                     }
                     //final int nrK = customerId;
@@ -183,7 +209,7 @@ public class FederatKasa extends AbstractFederat {
             customersObjectsToHandles.put(customer.getId(), customer);
             updateCheckoutInRti(checkoutAndCustomerId.getT1(), checkout);
         } catch (Exception e) {
-            log(e.getMessage());
+            log(13+""+e.getMessage());
         }
     }
 
@@ -207,7 +233,7 @@ public class FederatKasa extends AbstractFederat {
                     customer.setPrivileged(EncodingHelpers.decodeBoolean(value));
                 }
             } catch (ArrayIndexOutOfBounds e) {
-                log(e.getMessage());
+                log(14+""+e.getMessage());
             }
 
         }
@@ -221,9 +247,11 @@ public class FederatKasa extends AbstractFederat {
             publishObsluzonoKlienta();
             publishWejscieDoKasy();
 
+            subscribeOtworzKase();
+            subscribeZamknijKase();
+
             subscribeKlient();
 
-            subscribeOtworzKase();
             subscribeZamknijKase();
             subscribeOpuszczenieKolejki();
             subscribeWejscieDoKolejki();

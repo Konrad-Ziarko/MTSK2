@@ -9,8 +9,6 @@ import shared.Klient;
 
 import javax.swing.*;
 import javax.swing.text.DefaultCaret;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -21,7 +19,7 @@ import java.util.Map;
  * Created by konrad on 5/28/17.
  */
 public class FederatGUI extends AbstractFederat {
-    private static final String federateName = "FederatGUI";
+    private static final String federateName = "FederateGUI";
     //GUI
 
     private JFrame frame;
@@ -72,11 +70,7 @@ public class FederatGUI extends AbstractFederat {
 
         start = new JButton("Start");
         start.setEnabled(true);
-        start.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                shouldSendStartInteraction = true;
-            }
-        });
+        start.addActionListener(e -> shouldSendStartInteraction = true);
         panel.add(start);
         start.setSize(100, 30);
         start.setLocation(50, 20);
@@ -84,22 +78,16 @@ public class FederatGUI extends AbstractFederat {
 
         stop = new JButton("Stop");
         stop.setEnabled(false);
-        stop.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                shouldSendStopInteraction = true;
-            }
-        });
+        stop.addActionListener(e -> shouldSendStopInteraction = true);
         panel.add(stop);
         stop.setSize(100, 30);
         stop.setLocation(200, 20);
 
         newNormal = new JButton("Normalny");
         newNormal.setEnabled(true);
-        newNormal.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                shouldGenerateNewClient = true;
-                shouldGeneratePrivileged = false;
-            }
+        newNormal.addActionListener(e -> {
+            shouldGenerateNewClient = true;
+            shouldGeneratePrivileged = false;
         });
         panel.add(newNormal);
         newNormal.setSize(100, 30);
@@ -108,11 +96,9 @@ public class FederatGUI extends AbstractFederat {
 
         newPrivileged = new JButton("Uprzywilejowany");
         newPrivileged.setEnabled(true);
-        newPrivileged.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                shouldGenerateNewClient = true;
-                shouldGeneratePrivileged = true;
-            }
+        newPrivileged.addActionListener(e -> {
+            shouldGenerateNewClient = true;
+            shouldGeneratePrivileged = true;
         });
         panel.add(newPrivileged);
         newPrivileged.setSize(100, 30);
@@ -121,11 +107,7 @@ public class FederatGUI extends AbstractFederat {
 
         newCheckout = new JButton("Nowa Kasa");
         newCheckout.setEnabled(true);
-        newCheckout.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                shouldGenerateNewCheckout = true;
-            }
-        });
+        newCheckout.addActionListener(e -> shouldGenerateNewCheckout = true);
         panel.add(newCheckout);
         newCheckout.setSize(100, 30);
         newCheckout.setLocation(650, 20);
@@ -137,7 +119,7 @@ public class FederatGUI extends AbstractFederat {
         scrollPane.setViewportView(textArea);
         scrollPane.setBounds(30, 65, 475, 180);
         panel.add(scrollPane);
-        DefaultCaret caret = (DefaultCaret)textArea.getCaret();
+        DefaultCaret caret = (DefaultCaret) textArea.getCaret();
         caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
         scrollPane.setSize(700, 400);
         scrollPane.setLocation(50, 100);
@@ -166,12 +148,13 @@ public class FederatGUI extends AbstractFederat {
         }
         shouldGenerateNewClient = shouldGeneratePrivileged = false;
     }
+
     private void generateNewCheckout() {
         log("Sending \"nowa kasa\" interaction");
         SuppliedParameters parameters;
         try {
             parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
-            rtiamb.sendInteraction(fedamb.otworzKaseClassHandle.getClassHandle(), parameters, generateTag());
+            rtiamb.sendInteraction(fedamb.potworzKaseClassHandle.getClassHandle(), parameters, generateTag());
         } catch (RTIexception e1) {
             log("Couldn't send \"nowa kasa\" interaction, because: " + e1.getMessage());
         }
@@ -202,7 +185,7 @@ public class FederatGUI extends AbstractFederat {
                     generateNewClient(true);
                 else
                     generateNewClient(false);
-            if(shouldGenerateNewCheckout)
+            if (shouldGenerateNewCheckout)
                 generateNewCheckout();
 
             advanceTime(timeStep);
@@ -222,7 +205,7 @@ public class FederatGUI extends AbstractFederat {
         try {
             parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
             rtiamb.sendInteraction(fedamb.startSymulacjiClassHandle.getClassHandle(), parameters, generateTag());
-            //start.setEnabled(false);
+            start.setEnabled(false);
             stop.setEnabled(true);
         } catch (RTIexception e1) {
             log("Couldn't send \"start\" interaction, because: " + e1.getMessage());
@@ -257,7 +240,7 @@ public class FederatGUI extends AbstractFederat {
                 customers.add(theObject);
                 log("Customer " + theObject + " entered, customers amount: " + customers.size());
             } else if (theObjectClass == fedamb.kasaClassHandle.getClassHandle()) {
-                log("New checkout opened " + theObject);
+                log("New checkout opened " + theObject + " prev number of checkouts = " + checkoutObjectHandleToClassHandleMap.size());
                 checkoutObjectHandleToClassHandleMap.put(theObject, theObjectClass);
             } else if (theObjectClass == fedamb.statisticsClassHandle.getClassHandle()) {
                 log("New statistics object registered " + theObject);
@@ -277,9 +260,9 @@ public class FederatGUI extends AbstractFederat {
             if (interactionClass == fedamb.obsluzonoKlientaClassHandle.getClassHandle()) {
                 double extractTime = extractBuyingTime(theInteraction);
                 int extractCustomer = extractCustomerId(theInteraction);
-                log("Customer "+extractCustomer+" left checkout after " + extractTime + " time");
+                log("Customer " + extractCustomer + " left checkout after " + extractTime + " time");
             }
-            if (interactionClass == fedamb.wejscieDoKasyClassHandle.getClassHandle()){
+            if (interactionClass == fedamb.wejscieDoKasyClassHandle.getClassHandle()) {
                 int nrKasy = -1;
                 int nrKlienta = -1;
                 for (int i = 0; i < theInteraction.size(); i++) {
@@ -300,7 +283,28 @@ public class FederatGUI extends AbstractFederat {
                 }
                 log("Customer " + nrKlienta + " entered checkout " + nrKasy);
             }
-             if (interactionClass == fedamb.opuszczenieKolejkiClassHandle.getClassHandle()){
+            if (interactionClass == fedamb.otworzKaseClassHandle.getClassHandle()) {
+                log("Recived open new checkout interaction");
+            }
+            if (interactionClass == fedamb.zamknijKaseClassHandle.getClassHandle()) {
+                int nrKasy = -1;
+                for (int i = 0; i < theInteraction.size(); i++) {
+                    int attributeHandle;
+                    try {
+                        attributeHandle = theInteraction.getParameterHandle(i);
+                        String nameFor = fedamb.zamknijKaseClassHandle.getNameFor(attributeHandle);
+                        byte[] value = theInteraction.getValue(i);
+                        if (nameFor.equalsIgnoreCase(NR_KASY)) {
+                            nrKasy = EncodingHelpers.decodeInt(value);
+                        }
+                    } catch (ArrayIndexOutOfBounds arrayIndexOutOfBounds) {
+                        arrayIndexOutOfBounds.printStackTrace();
+                    }
+                }
+                log("Recived close checkout nr "+nrKasy+" interaction");
+            }
+
+            if (interactionClass == fedamb.opuszczenieKolejkiClassHandle.getClassHandle()) {
 
                 Integer checkoutId = -1;
                 Integer customerId = -1;
@@ -311,11 +315,12 @@ public class FederatGUI extends AbstractFederat {
                         byte[] value = theInteraction.getValue(i);
                         if (nameFor.equalsIgnoreCase(NR_KASY)) {
                             checkoutId = EncodingHelpers.decodeInt(value);
-                        }  if (nameFor.equalsIgnoreCase(NR_KLIENTA)) {
+                        }
+                        if (nameFor.equalsIgnoreCase(NR_KLIENTA)) {
                             customerId = EncodingHelpers.decodeInt(value);
                         }
                     } catch (ArrayIndexOutOfBounds e) {
-                        log(e.getMessage());
+                        log(3+""+e.getMessage());
                     }
                 }
                 log("Customer " + customerId + " has left the queue <tmp left bank> because was waiting too long in checkout " + checkoutId);
@@ -333,14 +338,14 @@ public class FederatGUI extends AbstractFederat {
 
     private void reciveQueueEntered(ReceivedInteraction theInteraction) {
         try {
-            Klient customer = new Klient(fedamb.getFederateTime(), 0,0);
+            Klient customer = new Klient(fedamb.getFederateTime(), 0, 0);
             FomObjectDefinition<Integer, Integer> checkoutAndCustomerId = getCheckoutAndCustomerIdParameters(theInteraction, customer);
 
             log("Customer " + customer.getId() + " entered queue in checkout " + checkoutAndCustomerId.getT1() + " with request id = " + customer.getNrSprawy());
             customers.remove(customer.getId());
 
         } catch (Exception e) {
-            log(e.getMessage());
+            log(4+""+e.getMessage());
         }
     }
 
@@ -355,16 +360,19 @@ public class FederatGUI extends AbstractFederat {
 
                 if (nameFor.equalsIgnoreCase(NR_KASY)) {
                     checkoutId = EncodingHelpers.decodeInt(value);
-                }  if (nameFor.equalsIgnoreCase(NR_KLIENTA)) {
+                }
+                if (nameFor.equalsIgnoreCase(NR_KLIENTA)) {
                     customerId = EncodingHelpers.decodeInt(value);
                     customer.setId(customerId);
-                } if (nameFor.equalsIgnoreCase(NR_SPRAWY)) {
-                    customer.setNrSprawy( EncodingHelpers.decodeInt(value));
-                }  if (nameFor.equalsIgnoreCase(UPRZYWILEJOWANY)) {
+                }
+                if (nameFor.equalsIgnoreCase(NR_SPRAWY)) {
+                    customer.setNrSprawy(EncodingHelpers.decodeInt(value));
+                }
+                if (nameFor.equalsIgnoreCase(UPRZYWILEJOWANY)) {
                     customer.setPrivileged(EncodingHelpers.decodeBoolean(value));
                 }
             } catch (ArrayIndexOutOfBounds e) {
-                log(e.getMessage());
+                log(5+""+e.getMessage());
             }
 
         }
@@ -387,7 +395,7 @@ public class FederatGUI extends AbstractFederat {
                     avgServiceTime = EncodingHelpers.decodeDouble(value);
                 }
             } catch (ArrayIndexOutOfBounds e) {
-                log(e.getMessage());
+                log(6+""+e.getMessage());
             }
         }
         updateStatistics(avgShoppingTime, avgWaitingTime, avgServiceTime);
@@ -406,13 +414,14 @@ public class FederatGUI extends AbstractFederat {
                     queueSize = EncodingHelpers.decodeInt(value);
                 }
             } catch (Exception e) {
-                log(e.getMessage());
+                log(7+""+e.getMessage());
             }
         }
         log("Checkout " + theObject + " updated: queue size: " + queueSize + " filled");
         FomObjectDefinition<Integer, Boolean> value = new FomObjectDefinition<>(queueSize, filled);
         checkoutObjectHandleToQueueSizeAndFilledMap.put(theObject, value);
     }
+
     private Integer extractNrSprawy(ReceivedInteraction theInteraction) {
         Integer handle = -1;
         for (int i = 0; i < theInteraction.size(); i++) {
@@ -421,11 +430,12 @@ public class FederatGUI extends AbstractFederat {
                     handle = EncodingHelpers.decodeInt(theInteraction.getValue(i));
                 }
             } catch (ArrayIndexOutOfBounds e) {
-                log(e.getMessage());
+                log(7+""+e.getMessage());
             }
         }
         return handle;
     }
+
     private boolean extractPrivileged(ReceivedInteraction theInteraction) {
         boolean handle = false;
         for (int i = 0; i < theInteraction.size(); i++) {
@@ -434,11 +444,12 @@ public class FederatGUI extends AbstractFederat {
                     handle = EncodingHelpers.decodeBoolean(theInteraction.getValue(i));
                 }
             } catch (ArrayIndexOutOfBounds e) {
-                log(e.getMessage());
+                log(8+""+e.getMessage());
             }
         }
         return handle;
     }
+
     private int extractClassHandle(ReceivedInteraction theInteraction) {
         int handle = -1;
         for (int i = 0; i < theInteraction.size(); i++) {
@@ -447,12 +458,13 @@ public class FederatGUI extends AbstractFederat {
                     handle = EncodingHelpers.decodeInt(theInteraction.getValue(i));
                 }
             } catch (ArrayIndexOutOfBounds e) {
-                log(e.getMessage());
+                log(9+""+e.getMessage());
             }
         }
         return handle;
     }
-    private int extractCustomerId(ReceivedInteraction theInteraction){
+
+    private int extractCustomerId(ReceivedInteraction theInteraction) {
         int retrivedId = -1;
         for (int i = 0; i < theInteraction.size(); i++) {
             try {
@@ -462,7 +474,7 @@ public class FederatGUI extends AbstractFederat {
                     retrivedId = EncodingHelpers.decodeInt(theInteraction.getValue(i));
                 }
             } catch (Exception e) {
-                log(e.getMessage());
+                log(10+""+e.getMessage());
             }
         }
         return retrivedId;
@@ -478,7 +490,7 @@ public class FederatGUI extends AbstractFederat {
                     buyingTime = EncodingHelpers.decodeDouble(theInteraction.getValue(i));
                 }
             } catch (Exception e) {
-                log(e.getMessage());
+                log(11+""+e.getMessage());
             }
         }
         return buyingTime;
@@ -493,11 +505,12 @@ public class FederatGUI extends AbstractFederat {
             subscribeWejscieDoKolejki();
             subscribeObsluzonoKlienta();
             subscribeOpuszczenieKolejki();
+            subscribeZamknijKase();
 
+            subscribeOtworzKase();
             publishOtworzKase();
 
             publishNowyKlient();
-
             publishSimStart();
             publishSimStop();
         } catch (NameNotFound | FederateNotExecutionMember | SaveInProgress | RTIinternalError | ConcurrentAccessAttempted | ObjectClassNotDefined | RestoreInProgress | InteractionClassNotDefined | FederateLoggingServiceCalls | AttributeNotDefined nameNotFound) {

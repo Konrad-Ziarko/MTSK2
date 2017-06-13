@@ -11,7 +11,7 @@ import java.util.List;
  * Created by konrad on 5/28/17.
  */
 public class FederatStatystyka extends AbstractFederat {
-    private static final String federateName = "FederatStatystyka";
+    private static final String federateName = "FederateStatystyka";
 
     private List<Double> meanTimeInLine = new ArrayList<>();
     private List<Double> meanTimeInCheckout = new ArrayList<>();

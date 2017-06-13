@@ -54,8 +54,8 @@ public abstract class AbstractFederat {
     protected static final String HLA_START_SIM = "HLAinteractionRoot.startSymulacji";
     protected static final String HLA_NOWY_KLIENT = "HLAinteractionRoot.nowyKlient";
 
-    protected int MAX_SERVICE_TIME = 500;
-    protected int MIN_SERVICE_TIME = 200;
+    protected int MAX_SERVICE_TIME = 5000;
+    protected int MIN_SERVICE_TIME = 2000;
 
     //
     public static final String FOM_PATH = "src/fed/bank.xml";
@@ -252,22 +252,19 @@ public abstract class AbstractFederat {
                         rtiamb.getAttributeHandle(pair.getT1(), classHandle),
                         pair.getT2());
             } catch (Exception e) {
-                log(e.getMessage());
+                log(1+""+e.getMessage());
             }
         });
         return object;
     }
 
-    public FomInteraction prepareFomInteraction(int classHandle,
-                                                @SuppressWarnings("unchecked") FomObjectDefinition<String, Class<?>>... parameterNamesAndEncodingFunctions) {
+    public FomInteraction prepareFomInteraction(int classHandle, @SuppressWarnings("unchecked") FomObjectDefinition<String, Class<?>>... parameterNamesAndEncodingFunctions) {
         FomInteraction interaction = new FomInteraction(classHandle);
         iterateArrayWhileDoing(parameterNamesAndEncodingFunctions, pair -> {
             try {
-                interaction.addAttributeHandle(pair.getT1(),
-                        rtiamb.getParameterHandle(pair.getT1(), classHandle),
-                        pair.getT2());
+                interaction.addAttributeHandle(pair.getT1(), rtiamb.getParameterHandle(pair.getT1(), classHandle), pair.getT2());
             } catch (Exception e) {
-                log(e.getMessage());
+                log(2+""+e.getMessage());
             }
         });
         return interaction;
@@ -386,27 +383,23 @@ public abstract class AbstractFederat {
 
     public void publishZamknijKase() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
         fedamb.zamknijKaseClassHandle = prepareFomInteraction(
-                rtiamb.getInteractionClassHandle(HLA_ZAMKNIJ_KASE),
-                new FomObjectDefinition<>(NR_KASY, Integer.class));
+                rtiamb.getInteractionClassHandle(HLA_ZAMKNIJ_KASE));
         rtiamb.publishInteractionClass(fedamb.zamknijKaseClassHandle.getClassHandle());
     }
     public void subscribeZamknijKase() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
         fedamb.zamknijKaseClassHandle = prepareFomInteraction(
-                rtiamb.getInteractionClassHandle(HLA_ZAMKNIJ_KASE),
-                new FomObjectDefinition<>(NR_KASY, Integer.class));
+                rtiamb.getInteractionClassHandle(HLA_ZAMKNIJ_KASE));
         rtiamb.subscribeInteractionClass(fedamb.zamknijKaseClassHandle.getClassHandle());
     }
 
     public void publishOtworzKase() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
-        fedamb.otworzKaseClassHandle = prepareFomInteraction(
-                rtiamb.getInteractionClassHandle(HLA_OTWORZ_KASE),
-                new FomObjectDefinition<>(UPRZYWILEJOWANY, Integer.class));
-        rtiamb.publishInteractionClass(fedamb.otworzKaseClassHandle.getClassHandle());
+        fedamb.potworzKaseClassHandle = prepareFomInteraction(
+                rtiamb.getInteractionClassHandle(HLA_OTWORZ_KASE));
+        rtiamb.publishInteractionClass(fedamb.potworzKaseClassHandle.getClassHandle());
     }
     public void subscribeOtworzKase() throws NameNotFound, FederateNotExecutionMember, RTIinternalError, FederateLoggingServiceCalls, ConcurrentAccessAttempted, InteractionClassNotDefined, RestoreInProgress, SaveInProgress {
         fedamb.otworzKaseClassHandle = prepareFomInteraction(
-            rtiamb.getInteractionClassHandle(HLA_OTWORZ_KASE),
-                new FomObjectDefinition<>(NR_KASY, Integer.class));
+                rtiamb.getInteractionClassHandle(HLA_OTWORZ_KASE));
         rtiamb.subscribeInteractionClass(fedamb.otworzKaseClassHandle.getClassHandle());
     }
 

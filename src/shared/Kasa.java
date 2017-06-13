@@ -10,9 +10,14 @@ import java.util.function.Consumer;
  */
 public class Kasa {
     private Integer checkoutId;
-    private boolean willBeClosed;
+    public boolean willBeClosed;
     public List<Klient> customersQueue;
-    private Klient buyingCustomer;
+
+    public Klient getCurrentCustomer() {
+        return currentCustomer;
+    }
+
+    private Klient currentCustomer;
 
     public Kasa(int checkoutId) {
         this.willBeClosed = false;
@@ -46,25 +51,32 @@ public class Kasa {
         this.checkoutId = checkoutId;
     }
     public Klient getCurrentlyBuyingCustomer() {
-        return buyingCustomer;
+        return currentCustomer;
     }
 
     public void updateCurrentBuyingCustomer(double federateTime, BiConsumer<Klient, Double> customerStartedBuyingAction) {
-        if (buyingCustomer == null && customersQueue.size() > 0 && !willBeClosed) {
-            buyingCustomer = customersQueue.remove(0);
-            double queueWaitingTime = federateTime - buyingCustomer.getOldFederateTime();
-            buyingCustomer.setOldFederateTime(federateTime);
-            customerStartedBuyingAction.accept(buyingCustomer, queueWaitingTime);
+        if (currentCustomer == null && customersQueue.size() > 0 && !willBeClosed) {
+            currentCustomer = customersQueue.remove(0);
+            double queueWaitingTime = federateTime - currentCustomer.getOldFederateTime();
+            currentCustomer.setOldFederateTime(federateTime);
+            customerStartedBuyingAction.accept(currentCustomer, queueWaitingTime);
+        }
+        else if (willBeClosed && currentCustomer == null){
+            //
         }
     }
 
     public void updateWithNewFederateTime(double federateTime, Consumer<Klient> customerFinishedBuyingAction) {
-        if (buyingCustomer != null) {
-            buyingCustomer.updateWithNewFederateTime(federateTime);
-            if (buyingCustomer.hasServiceFinished()) {
-                customerFinishedBuyingAction.accept(buyingCustomer);
-                buyingCustomer = null;
+        if (currentCustomer != null) {
+            currentCustomer.updateWithNewFederateTime(federateTime);
+            if (currentCustomer.hasServiceFinished()) {
+                customerFinishedBuyingAction.accept(currentCustomer);
+                currentCustomer = null;
             }
         }
+    }
+
+    public void setWillBeClosed(boolean willBeClosed) {
+        this.willBeClosed = willBeClosed;
     }
 }

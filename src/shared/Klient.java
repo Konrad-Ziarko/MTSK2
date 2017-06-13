@@ -103,4 +103,11 @@ public class Klient {
     public Double getPatienceTime() {
         return patienceTime;
     }
+
+    public void reset(double newFederateTime) {
+        this.oldFederateTime = newFederateTime;
+        queuePosition = -1;
+        queueId = -1;
+        hasServiceFinished = false;
+    }
 }

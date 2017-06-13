@@ -37,6 +37,7 @@ public class Ambasador extends NullFederateAmbassador {
     public FomInteraction opuszczenieKolejkiClassHandle;
     public FomInteraction wejscieDoKasyClassHandle;
 
+    public FomInteraction potworzKaseClassHandle;
     public FomInteraction otworzKaseClassHandle;
     public FomInteraction zamknijKaseClassHandle;
 

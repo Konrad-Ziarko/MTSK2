@@ -13,7 +13,7 @@ import java.util.Map.*;
 import java.util.*;
 
 public class FederatKlient extends AbstractFederat {
-    private static final String federateName = "FederatKlient";
+    private static final String federateName = "FederateKlient";
     private static final double PATIENCE_TIME_INCEASE_MIN = 500;
     private static final double PATIENCE_TIME_INCEASE_MAX = 900;
     private static final double STARTING_PATIENCE_TIME_MIN = 600;
@@ -94,7 +94,18 @@ public class FederatKlient extends AbstractFederat {
             } else if (interactionClass == fedamb.stopSymulacjiClassHandle.getClassHandle()) {
                 log("Stop interaction received");
                 fedamb.running = false;
-            } else if (interactionClass == fedamb.nowyKlientClassHandle.getClassHandle()) {
+            } else if (interactionClass == fedamb.zamknijKaseClassHandle.getClassHandle()) {
+                int dlKasy = Collections.min(queuesSizes.values());
+                int nrKasy = -1;
+                for (Integer integer : queuesSizes.keySet()) {
+                    if(queuesSizes.get(integer) == dlKasy){
+                        nrKasy = integer;
+                        break;
+                    }
+                }
+                log("Recived close checkout nr " + nrKasy + " interaction");
+                queuesSizes.remove(nrKasy);
+            }else if (interactionClass == fedamb.nowyKlientClassHandle.getClassHandle()) {
                 log("Nowy klient interaction received");
                 shouldGenerateNewClient = true;
                 for (int i = 0; i < theInteraction.size(); i++) {
@@ -203,30 +214,36 @@ public class FederatKlient extends AbstractFederat {
         submitNewTask(() -> {
             for (int i = inQueueCustomers.size() - 1; i >= 0; i--) {
                 Klient tmp = inQueueCustomers.get(i);
+                if(tmp!=null && tmp.wantsToLeave(newFederateTime) && tmp.getQueuePosition() > 1){
+                    int minQueue = Collections.min(queuesSizes.values());
+                    if (tmp.getQueuePosition() > minQueue){
+                        log("Customer "+tmp.getId()+" was impatient and has left the queue ");
 
-                if(tmp!=null && tmp.wantsToLeave(newFederateTime)){
-                    log("Customer "+tmp.getId()+" was impatient and has left the bank <tmp>");
+                        //queuesSizes.put(inQueueCustomer.getQueueId(), queuesSizes.get(inQueueCustomer.getQueueId())-1);
 
-                    //queuesSizes.put(inQueueCustomer.getQueueId(), queuesSizes.get(inQueueCustomer.getQueueId())-1);
+                        inQueueCustomers.remove(tmp);
+                        //customersObjectsToHandles.remove(tmp); //tylko jesli go usuwam na amen
+                        //customersHandlesToObjects.remove(tmp.getId());
 
-                    inQueueCustomers.remove(tmp);
-                    customersObjectsToHandles.remove(tmp);
-                    customersHandlesToObjects.remove(tmp.getId());
-
-                    SuppliedParameters parameters;
-                    try {
-                        parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
-                        parameters.add(fedamb.opuszczenieKolejkiClassHandle.getHandleFor(NR_KASY), EncodingHelpers.encodeInt(tmp.getQueueId()));
-                        parameters.add(fedamb.opuszczenieKolejkiClassHandle.getHandleFor(NR_KLIENTA), EncodingHelpers.encodeInt(tmp.getId()));
-                        rtiamb.sendInteraction(fedamb.opuszczenieKolejkiClassHandle.getClassHandle(), parameters, generateTag());
+                        SuppliedParameters parameters;
                         try {
+                            parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
+                            parameters.add(fedamb.opuszczenieKolejkiClassHandle.getHandleFor(NR_KASY), EncodingHelpers.encodeInt(tmp.getQueueId()));
+                            parameters.add(fedamb.opuszczenieKolejkiClassHandle.getHandleFor(NR_KLIENTA), EncodingHelpers.encodeInt(tmp.getId()));
+                            rtiamb.sendInteraction(fedamb.opuszczenieKolejkiClassHandle.getClassHandle(), parameters, generateTag());
+                        /*try {
                             rtiamb.deleteObjectInstance(tmp.getId(), generateTag());
                         } catch (ObjectNotKnown | DeletePrivilegeNotHeld | FederateNotExecutionMember | RestoreInProgress | SaveInProgress | ConcurrentAccessAttempted | RTIinternalError objectNotKnown) {
                             objectNotKnown.printStackTrace();
+                        }*/
+                            tmp.reset(newFederateTime);
+                            waitingCustomers.add(tmp);
+                        } catch (RTIexception e) {
+                            log("Couldn't send queue entered interaction, because: " + e.getMessage());
                         }
-                    } catch (RTIexception e) {
-                        log("Couldn't send queue entered interaction, because: " + e.getMessage());
                     }
+
+
                 }
             }
         });
@@ -298,6 +315,7 @@ public class FederatKlient extends AbstractFederat {
             publishWejscieDoKolejki();
             publishOpuszczenieKolejki();
 
+            subscribeZamknijKase();
             subscribeWejscieDoKasy();
             subscribeNowyKlient();
             subscribeObsluzonoKlienta();

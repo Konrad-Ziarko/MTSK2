@@ -81,8 +81,6 @@
             <interactionClass name="zamknijKase" sharing="PublishSubscribe"
                               dimensions="NA" transportation="HLAreliable" order="Receive"
                               semantics="NA">
-                <parameter name="nrKasy" dataType="HLAinteger32BE"
-                           semantics="NA" />
             </interactionClass>
             <interactionClass name="opuszczenieKolejki" sharing="PublishSubscribe"
                               dimensions="NA" transportation="HLAreliable" order="Receive"
