@@ -45,8 +45,8 @@ public class FederatMenedzer extends AbstractFederat {
         while (fedamb.running) {
             advanceTime(timeStep);
             if (fedamb.isSimulationStarted()) {
-                executeAllQueuedTasks();
-                submitNewTask(() -> {
+                //executeAllQueuedTasks();
+                //submitNewTask(() -> {
                     if (checkQueues) {
                         double avg = 0.0;
                         try{
@@ -82,7 +82,7 @@ public class FederatMenedzer extends AbstractFederat {
                         log("Average queue length = " + avg);
                         checkQueues = false;
                     }
-                });
+                //});
             }
         }
     }
