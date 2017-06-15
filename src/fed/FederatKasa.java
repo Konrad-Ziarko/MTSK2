@@ -5,6 +5,7 @@ import fom.FomObjectDefinition;
 import hla.rti.*;
 import hla.rti.jlc.EncodingHelpers;
 import hla.rti.jlc.RtiFactoryFactory;
+import shared.ExternalTask;
 import shared.Kasa;
 import shared.Klient;
 
@@ -57,8 +58,11 @@ public class FederatKasa extends AbstractFederat {
                     });
                 });
                 checkoutObjectIdsToObjects.entrySet().removeIf(entry -> entry.getValue().willBeClosed && entry.getValue().customersQueue.size()==0 &&  entry.getValue().getCurrentCustomer()==null);
+                executeAllQueuedTasks();
+
             }
             advanceTime(timeStep);
+            executeAllExternalTasks();
         }
     }
 
@@ -70,7 +74,7 @@ public class FederatKasa extends AbstractFederat {
             parameters.add(fedamb.wejscieDoKasyClassHandle.getHandleFor(CZAS_CZEKANIA_NA_OBSLUGE), EncodingHelpers.encodeDouble(waitingTime));
             parameters.add(fedamb.wejscieDoKasyClassHandle.getHandleFor(NR_KLIENTA), EncodingHelpers.encodeInt(klient));
             parameters.add(fedamb.wejscieDoKasyClassHandle.getHandleFor(NR_KASY), EncodingHelpers.encodeInt(queueId));
-            rtiamb.sendInteraction(fedamb.wejscieDoKasyClassHandle.getClassHandle(), parameters, generateTag());
+            rtiamb.sendInteraction(fedamb.wejscieDoKasyClassHandle.getClassHandle(), parameters, generateTag(), convertTime(fedamb.getNextTimeStep()));
         } catch (RTIexception e) {
             log("Couldn't send service started interaction, because: " + e.getMessage());
         }
@@ -85,7 +89,7 @@ public class FederatKasa extends AbstractFederat {
             parameters.add(fedamb.obsluzonoKlientaClassHandle.getHandleFor(CZAS_OBSLUGI), EncodingHelpers.encodeDouble(serviceTime));
             parameters.add(fedamb.obsluzonoKlientaClassHandle.getHandleFor(NR_KLIENTA), EncodingHelpers.encodeInt(finishedCustomer.getId()));
             customersObjectsToHandles.remove(finishedCustomer.getId());
-            rtiamb.sendInteraction(fedamb.obsluzonoKlientaClassHandle.getClassHandle(), parameters, generateTag());
+            rtiamb.sendInteraction(fedamb.obsluzonoKlientaClassHandle.getClassHandle(), parameters, generateTag(), convertTime(fedamb.getNextTimeStep()));
         } catch (RTIexception e) {
             log("Couldn't send service started interaction, because: " + e.getMessage());
         }
@@ -94,50 +98,45 @@ public class FederatKasa extends AbstractFederat {
     protected void prepareFederationAmbassador() {
         this.fedamb = new Ambasador();
 
-
         fedamb.registerInteractionReceivedListener((int interactionClass, ReceivedInteraction theInteraction, byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) -> {
-            if (interactionClass == fedamb.otworzKaseClassHandle.getClassHandle()) {
-                submitNewTask(() -> {
+            externalTasks.add(new ExternalTask(()->{
+                if (interactionClass == fedamb.otworzKaseClassHandle.getClassHandle()) {
                     log("Opening new checkout");
                     initiateNewCheckout();
-                });
-            } else if (interactionClass == fedamb.wejscieDoKolejkiClassHandle.getClassHandle()) {
-                submitNewTask(() -> {
+                } else if (interactionClass == fedamb.wejscieDoKolejkiClassHandle.getClassHandle()) {
                     prepareCustomerAndUpdateCheckoutInRti(theInteraction);
-                });
-            } else if (interactionClass == fedamb.startSymulacjiClassHandle.getClassHandle()) {
-                log("Start interaction received");
-                fedamb.setSimulationStarted(true);
-            } else if (interactionClass == fedamb.stopSymulacjiClassHandle.getClassHandle()) {
-                log("Stop interaction received");
-                fedamb.running = false;
-            } else if (interactionClass == fedamb.otworzKaseClassHandle.getClassHandle()) {
-                log("Recived open checkout interaction");
-                initiateNewCheckout();
-            }
-            else if (interactionClass == fedamb.zamknijKaseClassHandle.getClassHandle()) {
-                int nrKasy = -1;
-                for (int i = 0; i < theInteraction.size(); i++) {
-                    int attributeHandle;
-                    try {
-                        attributeHandle = theInteraction.getParameterHandle(i);
-                        String nameFor = fedamb.zamknijKaseClassHandle.getNameFor(attributeHandle);
-                        byte[] value = theInteraction.getValue(i);
-                        if (nameFor.equalsIgnoreCase(NR_KASY)) {
-                            nrKasy = EncodingHelpers.decodeInt(value);
+                } else if (interactionClass == fedamb.startSymulacjiClassHandle.getClassHandle()) {
+                    log("Start interaction received");
+                    fedamb.setSimulationStarted(true);
+                } else if (interactionClass == fedamb.stopSymulacjiClassHandle.getClassHandle()) {
+                    log("Stop interaction received");
+                    fedamb.running = false;
+                } else if (interactionClass == fedamb.otworzKaseClassHandle.getClassHandle()) {
+                    log("Recived open checkout interaction");
+                    initiateNewCheckout();
+                }
+                else if (interactionClass == fedamb.zamknijKaseClassHandle.getClassHandle()) {
+                    int nrKasy = -1;
+                    for (int i = 0; i < theInteraction.size(); i++) {
+                        int attributeHandle;
+                        try {
+                            attributeHandle = theInteraction.getParameterHandle(i);
+                            String nameFor = fedamb.zamknijKaseClassHandle.getNameFor(attributeHandle);
+                            byte[] value = theInteraction.getValue(i);
+                            if (nameFor.equalsIgnoreCase(NR_KASY)) {
+                                nrKasy = EncodingHelpers.decodeInt(value);
+                            }
+                        } catch (ArrayIndexOutOfBounds arrayIndexOutOfBounds) {
+                            arrayIndexOutOfBounds.printStackTrace();
                         }
-                    } catch (ArrayIndexOutOfBounds arrayIndexOutOfBounds) {
-                        arrayIndexOutOfBounds.printStackTrace();
+                    }
+                    if( nrKasy!=-1) {
+                        log("Recived close checkout nr " + nrKasy + " interaction | Checkout will be closed when last customer leaves");
+                        checkoutObjectIdsToObjects.get(nrKasy).setWillBeClosed(true);
                     }
                 }
-                if( nrKasy!=-1) {
-                    log("Recived close checkout nr " + nrKasy + " interaction | Checkout will be closed when last customer leaves");
-                    checkoutObjectIdsToObjects.get(nrKasy).setWillBeClosed(true);
-                }
-            }
 
-            else if (interactionClass == fedamb.opuszczenieKolejkiClassHandle.getClassHandle()){
-                submitNewTask(() -> {
+                else if (interactionClass == fedamb.opuszczenieKolejkiClassHandle.getClassHandle()){
                     Integer checkoutId = -1;
                     Integer customerId = -1;
                     for (int i = 0; i < theInteraction.size(); i++) {
@@ -165,8 +164,8 @@ public class FederatKasa extends AbstractFederat {
                     //checkout.removeCustomerFromQueue(customerId);
                     log("Usunięto klienta nr = " + customerId + " z kasy nr ");// + checkoutId);
                     updateCheckoutInRti(checkoutId, checkoutObjectIdsToObjects.get(checkoutId));
-                });
-            }
+                }
+            }, convertTime(theTime)));
         });
     }
 
@@ -187,7 +186,7 @@ public class FederatKasa extends AbstractFederat {
             attributes = RtiFactoryFactory.getRtiFactory().createSuppliedAttributes();
             byte[] encodedQueueSize = EncodingHelpers.encodeInt(checkout.getQueueSize());
             attributes.add(fedamb.kasaClassHandle.getHandleFor(DLUGOSC_KOLEJKI), encodedQueueSize);
-            rtiamb.updateAttributeValues(checkoutId, attributes, generateTag(), convertTime(fedamb.getFederateTime() + 1));
+            rtiamb.updateAttributeValues(checkoutId, attributes, generateTag(), convertTime(fedamb.getNextTimeStep()));
         } catch (InvalidFederationTime e) {
             log("Couldn't update Checkout " + checkoutId + ", because of invalid federation time error: " + e.getMessage());
         } catch (ObjectNotKnown | RTIinternalError | AttributeNotOwned | FederateNotExecutionMember | SaveInProgress | AttributeNotDefined | ConcurrentAccessAttempted | RestoreInProgress objectNotKnown) {

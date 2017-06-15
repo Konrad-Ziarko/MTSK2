@@ -5,6 +5,7 @@ import fom.FomObjectDefinition;
 import hla.rti.*;
 import hla.rti.jlc.EncodingHelpers;
 import hla.rti.jlc.RtiFactoryFactory;
+import shared.ExternalTask;
 import shared.Klient;
 
 import javax.swing.*;
@@ -142,7 +143,7 @@ public class FederatGUI extends AbstractFederat {
             parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
             parameters.add(fedamb.nowyKlientClassHandle.getHandleFor(UPRZYWILEJOWANY),
                     EncodingHelpers.encodeBoolean(b));
-            rtiamb.sendInteraction(fedamb.nowyKlientClassHandle.getClassHandle(), parameters, generateTag());
+            rtiamb.sendInteraction(fedamb.nowyKlientClassHandle.getClassHandle(), parameters, generateTag(), convertTime(fedamb.getNextTimeStep()));
         } catch (RTIexception e1) {
             log("Couldn't send \"nowy klient\" interaction, because: " + e1.getMessage());
         }
@@ -154,7 +155,7 @@ public class FederatGUI extends AbstractFederat {
         SuppliedParameters parameters;
         try {
             parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
-            rtiamb.sendInteraction(fedamb.potworzKaseClassHandle.getClassHandle(), parameters, generateTag());
+            rtiamb.sendInteraction(fedamb.potworzKaseClassHandle.getClassHandle(), parameters, generateTag(), convertTime(fedamb.getNextTimeStep()));
         } catch (RTIexception e1) {
             log("Couldn't send \"nowa kasa\" interaction, because: " + e1.getMessage());
         }
@@ -188,7 +189,9 @@ public class FederatGUI extends AbstractFederat {
             if (shouldGenerateNewCheckout)
                 generateNewCheckout();
 
+            executeAllQueuedTasks();
             advanceTime(timeStep);
+            executeAllExternalTasks();
             try {
                 rtiamb.tick();
             } catch (RTIinternalError | ConcurrentAccessAttempted rtIinternalError) {
@@ -204,7 +207,7 @@ public class FederatGUI extends AbstractFederat {
         SuppliedParameters parameters;
         try {
             parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
-            rtiamb.sendInteraction(fedamb.startSymulacjiClassHandle.getClassHandle(), parameters, generateTag());
+            rtiamb.sendInteraction(fedamb.startSymulacjiClassHandle.getClassHandle(), parameters, generateTag(), convertTime(fedamb.getNextTimeStep()));
             start.setEnabled(false);
             stop.setEnabled(true);
         } catch (RTIexception e1) {
@@ -218,7 +221,7 @@ public class FederatGUI extends AbstractFederat {
         SuppliedParameters parameters;
         try {
             parameters = RtiFactoryFactory.getRtiFactory().createSuppliedParameters();
-            rtiamb.sendInteraction(fedamb.stopSymulacjiClassHandle.getClassHandle(), parameters, generateTag());
+            rtiamb.sendInteraction(fedamb.stopSymulacjiClassHandle.getClassHandle(), parameters, generateTag(), convertTime(fedamb.getNextTimeStep()));
             start.setEnabled(true);
             stop.setEnabled(false);
         } catch (RTIexception e) {
@@ -248,91 +251,100 @@ public class FederatGUI extends AbstractFederat {
             }
         });
         fedamb.registerObjectInstanceRemovedListener((int theObject, byte[] userSuppliedTag, LogicalTime theTime, EventRetractionHandle retractionHandle) -> {
-            if (customerObjectHandleToClassHandleMap.get(theObject) == fedamb.klientClassHandle.getClassHandle()) {
-                customers.remove(new Integer(theObject));
-                log("Customer " + theObject + " left bank");
-            }
+            externalTasks.add(new ExternalTask(()->{
+                if (customerObjectHandleToClassHandleMap.get(theObject) == fedamb.klientClassHandle.getClassHandle()) {
+                    customers.remove(new Integer(theObject));
+                    log("Customer " + theObject + " left bank");
+                }
+            }, convertTime(theTime)));
+
         });
         fedamb.registerInteractionReceivedListener((int interactionClass, ReceivedInteraction theInteraction, byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) -> {
-            if (interactionClass == fedamb.wejscieDoKolejkiClassHandle.getClassHandle()) {
-                reciveQueueEntered(theInteraction);
-            }
-            if (interactionClass == fedamb.obsluzonoKlientaClassHandle.getClassHandle()) {
-                double extractTime = extractBuyingTime(theInteraction);
-                int extractCustomer = extractCustomerId(theInteraction);
-                log("Customer " + extractCustomer + " left checkout after " + extractTime + " time");
-            }
-            if (interactionClass == fedamb.wejscieDoKasyClassHandle.getClassHandle()) {
-                int nrKasy = -1;
-                int nrKlienta = -1;
-                for (int i = 0; i < theInteraction.size(); i++) {
-                    int attributeHandle;
-                    try {
-                        attributeHandle = theInteraction.getParameterHandle(i);
-                        String nameFor = fedamb.wejscieDoKasyClassHandle.getNameFor(attributeHandle);
-                        byte[] value = theInteraction.getValue(i);
-                        if (nameFor.equalsIgnoreCase(NR_KASY)) {
-                            nrKasy = EncodingHelpers.decodeInt(value);
-                        }
-                        if (nameFor.equalsIgnoreCase(NR_KLIENTA)) {
-                            nrKlienta = EncodingHelpers.decodeInt(value);
-                        }
-                    } catch (ArrayIndexOutOfBounds arrayIndexOutOfBounds) {
-                        arrayIndexOutOfBounds.printStackTrace();
-                    }
+            externalTasks.add(new ExternalTask(()->{
+                if (interactionClass == fedamb.wejscieDoKolejkiClassHandle.getClassHandle()) {
+                    reciveQueueEntered(theInteraction);
                 }
-                log("Customer " + nrKlienta + " entered checkout " + nrKasy);
-            }
-            if (interactionClass == fedamb.otworzKaseClassHandle.getClassHandle()) {
-                log("Recived open new checkout interaction");
-            }
-            if (interactionClass == fedamb.zamknijKaseClassHandle.getClassHandle()) {
-                int nrKasy = -1;
-                for (int i = 0; i < theInteraction.size(); i++) {
-                    int attributeHandle;
-                    try {
-                        attributeHandle = theInteraction.getParameterHandle(i);
-                        String nameFor = fedamb.zamknijKaseClassHandle.getNameFor(attributeHandle);
-                        byte[] value = theInteraction.getValue(i);
-                        if (nameFor.equalsIgnoreCase(NR_KASY)) {
-                            nrKasy = EncodingHelpers.decodeInt(value);
-                        }
-                    } catch (ArrayIndexOutOfBounds arrayIndexOutOfBounds) {
-                        arrayIndexOutOfBounds.printStackTrace();
-                    }
+                if (interactionClass == fedamb.obsluzonoKlientaClassHandle.getClassHandle()) {
+                    double extractTime = extractBuyingTime(theInteraction);
+                    int extractCustomer = extractCustomerId(theInteraction);
+                    log("Customer " + extractCustomer + " left checkout after " + extractTime + " time");
                 }
-                log("Recived close checkout nr "+nrKasy+" interaction");
-            }
-
-            if (interactionClass == fedamb.opuszczenieKolejkiClassHandle.getClassHandle()) {
-
-                Integer checkoutId = -1;
-                Integer customerId = -1;
-                for (int i = 0; i < theInteraction.size(); i++) {
-                    try {
-                        Integer attributeHandle = theInteraction.getParameterHandle(i);
-                        String nameFor = fedamb.opuszczenieKolejkiClassHandle.getNameFor(attributeHandle);
-                        byte[] value = theInteraction.getValue(i);
-                        if (nameFor.equalsIgnoreCase(NR_KASY)) {
-                            checkoutId = EncodingHelpers.decodeInt(value);
+                if (interactionClass == fedamb.wejscieDoKasyClassHandle.getClassHandle()) {
+                    int nrKasy = -1;
+                    int nrKlienta = -1;
+                    for (int i = 0; i < theInteraction.size(); i++) {
+                        int attributeHandle;
+                        try {
+                            attributeHandle = theInteraction.getParameterHandle(i);
+                            String nameFor = fedamb.wejscieDoKasyClassHandle.getNameFor(attributeHandle);
+                            byte[] value = theInteraction.getValue(i);
+                            if (nameFor.equalsIgnoreCase(NR_KASY)) {
+                                nrKasy = EncodingHelpers.decodeInt(value);
+                            }
+                            if (nameFor.equalsIgnoreCase(NR_KLIENTA)) {
+                                nrKlienta = EncodingHelpers.decodeInt(value);
+                            }
+                        } catch (ArrayIndexOutOfBounds arrayIndexOutOfBounds) {
+                            arrayIndexOutOfBounds.printStackTrace();
                         }
-                        if (nameFor.equalsIgnoreCase(NR_KLIENTA)) {
-                            customerId = EncodingHelpers.decodeInt(value);
-                        }
-                    } catch (ArrayIndexOutOfBounds e) {
-                        log(3+""+e.getMessage());
                     }
+                    log("Customer " + nrKlienta + " entered checkout " + nrKasy);
                 }
-                log("Customer " + customerId + " has left the queue <tmp left bank> because was waiting too long in checkout " + checkoutId);
+                if (interactionClass == fedamb.otworzKaseClassHandle.getClassHandle()) {
+                    log("Recived open new checkout interaction");
+                }
+                if (interactionClass == fedamb.zamknijKaseClassHandle.getClassHandle()) {
+                    int nrKasy = -1;
+                    for (int i = 0; i < theInteraction.size(); i++) {
+                        int attributeHandle;
+                        try {
+                            attributeHandle = theInteraction.getParameterHandle(i);
+                            String nameFor = fedamb.zamknijKaseClassHandle.getNameFor(attributeHandle);
+                            byte[] value = theInteraction.getValue(i);
+                            if (nameFor.equalsIgnoreCase(NR_KASY)) {
+                                nrKasy = EncodingHelpers.decodeInt(value);
+                            }
+                        } catch (ArrayIndexOutOfBounds arrayIndexOutOfBounds) {
+                            arrayIndexOutOfBounds.printStackTrace();
+                        }
+                    }
+                    log("Recived close checkout nr "+nrKasy+" interaction");
+                }
 
-            }
+                if (interactionClass == fedamb.opuszczenieKolejkiClassHandle.getClassHandle()) {
+
+                    Integer checkoutId = -1;
+                    Integer customerId = -1;
+                    for (int i = 0; i < theInteraction.size(); i++) {
+                        try {
+                            Integer attributeHandle = theInteraction.getParameterHandle(i);
+                            String nameFor = fedamb.opuszczenieKolejkiClassHandle.getNameFor(attributeHandle);
+                            byte[] value = theInteraction.getValue(i);
+                            if (nameFor.equalsIgnoreCase(NR_KASY)) {
+                                checkoutId = EncodingHelpers.decodeInt(value);
+                            }
+                            if (nameFor.equalsIgnoreCase(NR_KLIENTA)) {
+                                customerId = EncodingHelpers.decodeInt(value);
+                            }
+                        } catch (ArrayIndexOutOfBounds e) {
+                            log(3+""+e.getMessage());
+                        }
+                    }
+                    log("Customer " + customerId + " has left the queue <tmp left bank> because was waiting too long in checkout " + checkoutId);
+
+                }
+            }, convertTime(theTime)));
+
         });
-        fedamb.registerAttributesUpdatedListener((theObject, theAttributes, tag, theTime, whateverMan) -> {
-            if (checkoutObjectHandleToClassHandleMap.containsKey(theObject) && fedamb.kasaClassHandle.getClassHandle() == checkoutObjectHandleToClassHandleMap.get(theObject)) {
-                handleCheckoutUpdate(theObject, theAttributes);
-            } else if (statisticsObjectHandle != null && statisticsObjectHandle == theObject) {
-                extractAndUpdateStatistics(theAttributes);
-            }
+        fedamb.registerAttributesUpdatedListener((int theObject, ReflectedAttributes theAttributes, byte[] tag, Double time, EventRetractionHandle retractionHandle) -> {
+            externalTasks.add(new ExternalTask(()->{
+                if (checkoutObjectHandleToClassHandleMap.containsKey(theObject) && fedamb.kasaClassHandle.getClassHandle() == checkoutObjectHandleToClassHandleMap.get(theObject)) {
+                    handleCheckoutUpdate(theObject, theAttributes);
+                } else if (statisticsObjectHandle != null && statisticsObjectHandle == theObject) {
+                    extractAndUpdateStatistics(theAttributes);
+                }
+            }, time));
+
         });
     }
 

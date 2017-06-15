@@ -61,29 +61,29 @@
         <interactionClass name="HLAinteractionRoot" sharing="PublishSubscribe"
                           dimensions="NA" transportation="HLAreliable" order="Receive">
             <interactionClass name="otworzKase" sharing="PublishSubscribe"
-                              dimensions="NA" transportation="HLAreliable" order="Receive"
+                              dimensions="NA" transportation="HLAreliable" order="TimeStamp"
                               semantics="NA">
             </interactionClass>
             <interactionClass name="stopSymulacji" sharing="PublishSubscribe"
-                              dimensions="NA" transportation="HLAreliable" order="Receive"
+                              dimensions="NA" transportation="HLAreliable" order="TimeStamp"
                               semantics="NA">
             </interactionClass>
             <interactionClass name="startSymulacji" sharing="PublishSubscribe"
-                              dimensions="NA" transportation="HLAreliable" order="Receive"
+                              dimensions="NA" transportation="HLAreliable" order="TimeStamp"
                               semantics="NA">
             </interactionClass>
             <interactionClass name="nowyKlient" sharing="PublishSubscribe"
-                              dimensions="NA" transportation="HLAreliable" order="Receive"
+                              dimensions="NA" transportation="HLAreliable" order="TimeStamp"
                               semantics="NA">
                 <parameter name="czyUprzywilejowany" dataType="HLAboolean"
                            semantics="NA" />
             </interactionClass>
             <interactionClass name="zamknijKase" sharing="PublishSubscribe"
-                              dimensions="NA" transportation="HLAreliable" order="Receive"
+                              dimensions="NA" transportation="HLAreliable" order="TimeStamp"
                               semantics="NA">
             </interactionClass>
             <interactionClass name="opuszczenieKolejki" sharing="PublishSubscribe"
-                              dimensions="NA" transportation="HLAreliable" order="Receive"
+                              dimensions="NA" transportation="HLAreliable" order="TimeStamp"
                               semantics="NA">
                 <parameter name="nrKlienta" dataType="HLAinteger32BE"
                            semantics="NA" />
@@ -91,7 +91,7 @@
                            semantics="NA" />
             </interactionClass>
             <interactionClass name="wejscieDoKolejki" sharing="PublishSubscribe"
-                              dimensions="NA" transportation="HLAreliable" order="Receive"
+                              dimensions="NA" transportation="HLAreliable" order="TimeStamp"
                               semantics="NA">
                 <parameter name="nrKlienta" dataType="HLAinteger32BE"
                            semantics="NA" />
@@ -103,7 +103,7 @@
                            semantics="NA" />
             </interactionClass>
             <interactionClass name="obsluzonoKlienta" sharing="PublishSubscribe"
-                              dimensions="NA" transportation="HLAreliable" order="Receive"
+                              dimensions="NA" transportation="HLAreliable" order="TimeStamp"
                               semantics="NA">
                 <parameter name="czasObslugi" dataType="HLAfloat64BE"
                            semantics="NA" />
@@ -111,7 +111,7 @@
                            semantics="NA" />
             </interactionClass>
             <interactionClass name="wejscieDoKasy" sharing="PublishSubscribe"
-                              dimensions="NA" transportation="HLAreliable" order="Receive"
+                              dimensions="NA" transportation="HLAreliable" order="TimeStamp"
                               semantics="NA">
                 <parameter name="czasCzekaniaNaObsluge" dataType="HLAfloat64BE"
                            semantics="NA" />

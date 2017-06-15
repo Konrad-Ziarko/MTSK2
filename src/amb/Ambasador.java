@@ -45,6 +45,7 @@ public class Ambasador extends NullFederateAmbassador {
     public FomObject kasaClassHandle;
     public FomObject klientClassHandle;
 
+    public final double timeStep = 10.0;
 
     public double federateTime = 0.0;
     public double grantedTime = 0.0;
@@ -140,6 +141,13 @@ public class Ambasador extends NullFederateAmbassador {
         objectInstanceRemovedListeners.forEach(listener -> {
             listener.objectInstanceRemoved(theObject, userSuppliedTag, theTime, retractionHandle);
         });
+    }
+
+    public double getNextTimeStep(){
+        double toRet = federateTime+federateLookahead;
+        //currentStep += timeStep/100;
+
+        return toRet;
     }
 
     public double getFederateTime() {

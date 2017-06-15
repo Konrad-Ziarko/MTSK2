@@ -8,6 +8,7 @@ import hla.rti.*;
 import hla.rti.jlc.RtiFactoryFactory;
 import org.portico.impl.hla13.types.DoubleTime;
 import org.portico.impl.hla13.types.DoubleTimeInterval;
+import shared.ExternalTask;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -66,7 +67,23 @@ public abstract class AbstractFederat {
     public final double timeStep = 10.0;
     public Ambasador fedamb;
     protected Map<Integer, Integer> objectToClassHandleMap = new HashMap<>();
-    protected List<Runnable> queuedTasks = new LinkedList<Runnable>();
+
+
+    protected List<ExternalTask> externalTasks = new LinkedList<>();
+    protected void submitNewExternalTask(ExternalTask task) {
+        externalTasks.add(task);
+    }
+
+    protected void executeAllExternalTasks() {
+        Collections.sort(externalTasks, new ExternalTask.ExternalEventComparator());
+        externalTasks.forEach(ExternalTask::run);
+        externalTasks.clear();
+
+    }
+
+
+
+    protected List<Runnable> queuedTasks = new LinkedList<>();
     protected void submitNewTask(Runnable task) {
         queuedTasks.add(task);
     }
@@ -104,6 +121,10 @@ public abstract class AbstractFederat {
 
     protected LogicalTimeInterval convertInterval(double time) {
         return new DoubleTimeInterval(time);
+    }
+
+    public double convertTime(LogicalTime time){
+        return ((DoubleTime)time).getTime();
     }
 
     protected LogicalTime convertTime(double time) {

@@ -3,6 +3,7 @@ package fed;
 import amb.Ambasador;
 import hla.rti.*;
 import hla.rti.jlc.EncodingHelpers;
+import shared.ExternalTask;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +36,9 @@ public class FederatStatystyka extends AbstractFederat {
 
         System.out.println("\nRuszyli");
         while (fedamb.running) {
+            executeAllExternalTasks();
+            executeAllQueuedTasks();
+
             advanceTime(timeStep);
         }
         Integer sum = 0;
@@ -64,54 +68,58 @@ public class FederatStatystyka extends AbstractFederat {
             meanCheckoutLineLength.add(0);
         });
         fedamb.registerAttributesUpdatedListener((objectHandle, theAttributes, tag, theTime, retractionHandle) -> {
-            if (true){//fedamb.kasaClassHandle.getClassHandle() == queuesSizes.get(objectHandle)) {
-                int queueSize = -1;
-                for (int i = 0; i < theAttributes.size(); i++) {
-                    try {
-                        byte[] value = theAttributes.getValue(i);
-                        if (theAttributes.getAttributeHandle(i) == fedamb.kasaClassHandle.getHandleFor(DLUGOSC_KOLEJKI)) {
-                            queueSize = EncodingHelpers.decodeInt(value);
+            externalTasks.add(new ExternalTask(() -> {
+                if (true) {//fedamb.kasaClassHandle.getClassHandle() == queuesSizes.get(objectHandle)) {
+                    int queueSize = -1;
+                    for (int i = 0; i < theAttributes.size(); i++) {
+                        try {
+                            byte[] value = theAttributes.getValue(i);
+                            if (theAttributes.getAttributeHandle(i) == fedamb.kasaClassHandle.getHandleFor(DLUGOSC_KOLEJKI)) {
+                                queueSize = EncodingHelpers.decodeInt(value);
+                            }
+                        } catch (Exception e) {
+                            log(e.getMessage());
                         }
-                    } catch (Exception e) {
-                        log(e.getMessage());
                     }
+                    if (queueSize != -1)
+                        meanCheckoutLineLength.add(queueSize);
                 }
-                if(queueSize!=-1)
-                    meanCheckoutLineLength.add(queueSize);
-            }
+            }, theTime));
         });
 
         fedamb.registerInteractionReceivedListener((int interactionClass, ReceivedInteraction theInteraction, byte[] tag, LogicalTime theTime, EventRetractionHandle eventRetractionHandle) -> {
-            if (interactionClass == fedamb.startSymulacjiClassHandle.getClassHandle()) {
-                log("Start interaction received");
-                fedamb.setSimulationStarted(true);
-            }
-            if (interactionClass == fedamb.stopSymulacjiClassHandle.getClassHandle()) {
-                log("Stop interaction received");
-                fedamb.running = false;
-            }
-            if (interactionClass == fedamb.obsluzonoKlientaClassHandle.getClassHandle()) {
-                double extractTime = extractBuyingTime(theInteraction);
-                meanTimeInCheckout.add(extractTime);
-            }
-            if (interactionClass == fedamb.wejscieDoKasyClassHandle.getClassHandle()){
-                Double waitingTime = -1.0;
-                for (int i = 0; i < theInteraction.size(); i++) {
-                    int attributeHandle = 0;
-                    try {
-                        attributeHandle = theInteraction.getParameterHandle(i);
-                        String nameFor = fedamb.wejscieDoKasyClassHandle.getNameFor(attributeHandle);
-                        byte[] value = theInteraction.getValue(i);
-                        if (nameFor.equalsIgnoreCase(CZAS_CZEKANIA_NA_OBSLUGE)) {
-                            waitingTime = EncodingHelpers.decodeDouble(value);
-                        }
-                    } catch (ArrayIndexOutOfBounds arrayIndexOutOfBounds) {
-                        arrayIndexOutOfBounds.printStackTrace();
-                    }
+            externalTasks.add(new ExternalTask(() -> {
+                if (interactionClass == fedamb.startSymulacjiClassHandle.getClassHandle()) {
+                    log("Start interaction received");
+                    fedamb.setSimulationStarted(true);
                 }
-                if(waitingTime!=-1.0)
-                    meanTimeInLine.add(waitingTime);
-            }
+                if (interactionClass == fedamb.stopSymulacjiClassHandle.getClassHandle()) {
+                    log("Stop interaction received");
+                    fedamb.running = false;
+                }
+                if (interactionClass == fedamb.obsluzonoKlientaClassHandle.getClassHandle()) {
+                    double extractTime = extractBuyingTime(theInteraction);
+                    meanTimeInCheckout.add(extractTime);
+                }
+                if (interactionClass == fedamb.wejscieDoKasyClassHandle.getClassHandle()) {
+                    Double waitingTime = -1.0;
+                    for (int i = 0; i < theInteraction.size(); i++) {
+                        int attributeHandle = 0;
+                        try {
+                            attributeHandle = theInteraction.getParameterHandle(i);
+                            String nameFor = fedamb.wejscieDoKasyClassHandle.getNameFor(attributeHandle);
+                            byte[] value = theInteraction.getValue(i);
+                            if (nameFor.equalsIgnoreCase(CZAS_CZEKANIA_NA_OBSLUGE)) {
+                                waitingTime = EncodingHelpers.decodeDouble(value);
+                            }
+                        } catch (ArrayIndexOutOfBounds arrayIndexOutOfBounds) {
+                            arrayIndexOutOfBounds.printStackTrace();
+                        }
+                    }
+                    if (waitingTime != -1.0)
+                        meanTimeInLine.add(waitingTime);
+                }
+            }, convertTime(theTime)));
         });
     }
     private double extractBuyingTime(ReceivedInteraction theInteraction) {
