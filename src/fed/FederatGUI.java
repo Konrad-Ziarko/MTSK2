@@ -7,13 +7,13 @@ import hla.rti.jlc.EncodingHelpers;
 import hla.rti.jlc.RtiFactoryFactory;
 import shared.ExternalTask;
 import shared.Klient;
+import shared.Zawartosc;
 
 import javax.swing.*;
 import javax.swing.text.DefaultCaret;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
@@ -31,7 +31,10 @@ public class FederatGUI extends AbstractFederat {
     private JButton newCheckout;
     private JTextArea textArea;
     private JScrollPane scrollPane;
+    private JTextArea textArea2;
     //
+    private Zawartosc zawartosc;
+    private Lock lock = new ReentrantLock();
 
     private Map<Integer, Integer> checkoutObjectHandleToClassHandleMap;
     private Map<Integer, Integer> customerObjectHandleToClassHandleMap;
@@ -134,6 +137,30 @@ public class FederatGUI extends AbstractFederat {
         frame.setVisible(true);
         frame.setSize(800, 600);
         frame.setLocationRelativeTo(null);
+
+        JFrame frame2 = new JFrame("Wnetrze");
+        JPanel panel2 = new JPanel();
+
+        frame2.add(panel2);
+        frame2.setContentPane(panel2);
+        panel2.setLayout(null);
+        frame2.pack();
+        frame2.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        frame2.setVisible(true);
+        frame2.setSize(800, 600);
+        frame2.setLocationRelativeTo(null);
+
+        textArea2 = new JTextArea();
+        textArea2.setEnabled(true);
+        zawartosc = new Zawartosc(textArea2);
+        JScrollPane scrollPane2 = new JScrollPane();
+        scrollPane2.setViewportView(textArea2);
+        scrollPane2.setBounds(30, 65, 475, 180);
+        panel2.add(scrollPane2);
+        DefaultCaret caret2 = (DefaultCaret) textArea2.getCaret();
+        caret2.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+        scrollPane2.setSize(700, 400);
+        scrollPane2.setLocation(50, 100);
     }
 
     private void generateNewClient(boolean b) {
@@ -241,9 +268,15 @@ public class FederatGUI extends AbstractFederat {
             if (theObjectClass == fedamb.klientClassHandle.getClassHandle()) {
                 customerObjectHandleToClassHandleMap.put(theObject, theObjectClass);
                 customers.add(theObject);
+                lock.lock();
+                zawartosc.addCustomerToWaitingRoom(theObject);
+                lock.unlock();
                 log("Customer " + theObject + " entered, customers amount: " + customers.size());
             } else if (theObjectClass == fedamb.kasaClassHandle.getClassHandle()) {
                 log("New checkout opened " + theObject + " prev number of checkouts = " + checkoutObjectHandleToClassHandleMap.size());
+                lock.lock();
+                zawartosc.addCheckout(theObject);
+                lock.unlock();
                 checkoutObjectHandleToClassHandleMap.put(theObject, theObjectClass);
             } else if (theObjectClass == fedamb.statisticsClassHandle.getClassHandle()) {
                 log("New statistics object registered " + theObject);
@@ -255,6 +288,9 @@ public class FederatGUI extends AbstractFederat {
                 if (customerObjectHandleToClassHandleMap.get(theObject) == fedamb.klientClassHandle.getClassHandle()) {
                     customers.remove(new Integer(theObject));
                     log("Customer " + theObject + " left bank");
+                    lock.lock();
+                    zawartosc.removeCustomer(theObject);
+                    lock.unlock();
                 }
             }, convertTime(theTime)));
 
@@ -267,6 +303,9 @@ public class FederatGUI extends AbstractFederat {
                 if (interactionClass == fedamb.obsluzonoKlientaClassHandle.getClassHandle()) {
                     double extractTime = extractBuyingTime(theInteraction);
                     int extractCustomer = extractCustomerId(theInteraction);
+                    lock.lock();
+                    zawartosc.removeCustomerFromCheckout(extractCustomer);
+                    lock.unlock();
                     log("Customer " + extractCustomer + " left checkout after " + extractTime + " time");
                 }
                 if (interactionClass == fedamb.wejscieDoKasyClassHandle.getClassHandle()) {
@@ -288,10 +327,14 @@ public class FederatGUI extends AbstractFederat {
                             arrayIndexOutOfBounds.printStackTrace();
                         }
                     }
+                    lock.lock();
+                    zawartosc.customerIsBeingServiced(nrKlienta, nrKasy);
+                    lock.unlock();
                     log("Customer " + nrKlienta + " entered checkout " + nrKasy);
                 }
                 if (interactionClass == fedamb.otworzKaseClassHandle.getClassHandle()) {
                     log("Recived open new checkout interaction");
+                    //
                 }
                 if (interactionClass == fedamb.zamknijKaseClassHandle.getClassHandle()) {
                     int nrKasy = -1;
@@ -308,6 +351,9 @@ public class FederatGUI extends AbstractFederat {
                             arrayIndexOutOfBounds.printStackTrace();
                         }
                     }
+                    lock.lock();
+                    zawartosc.removeCheckout(nrKasy);
+                    lock.unlock();
                     log("Recived close checkout nr "+nrKasy+" interaction");
                 }
 
@@ -330,6 +376,9 @@ public class FederatGUI extends AbstractFederat {
                             log(3+""+e.getMessage());
                         }
                     }
+                    lock.lock();
+                    zawartosc.removeCustomerFromQueue(customerId, checkoutId);
+                    lock.unlock();
                     log("Customer " + customerId + " has left the queue <tmp left bank> because was waiting too long in checkout " + checkoutId);
 
                 }
@@ -354,6 +403,18 @@ public class FederatGUI extends AbstractFederat {
             FomObjectDefinition<Integer, Integer> checkoutAndCustomerId = getCheckoutAndCustomerIdParameters(theInteraction, customer);
 
             log("Customer " + customer.getId() + " entered queue in checkout " + checkoutAndCustomerId.getT1() + " with request id = " + customer.getNrSprawy());
+            lock.lock();
+            zawartosc.removeCustomerFromWaitingRoom(customer.getId());
+            lock.unlock();
+            if (customer.isPrivileged()){
+                lock.lock();
+                zawartosc.addPriviligedCustomerToCheckout(customer.getId(), checkoutAndCustomerId.getT1());
+                lock.unlock();
+            }else {
+                lock.lock();
+                zawartosc.addCustomerToCheckout(customer.getId(), checkoutAndCustomerId.getT1());
+                lock.unlock();
+            }
             customers.remove(customer.getId());
 
         } catch (Exception e) {

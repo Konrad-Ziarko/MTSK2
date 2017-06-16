@@ -228,7 +228,7 @@ public class FederatKlient extends AbstractFederat {
                     if (tmp.getQueuePosition() > minQueue){
                         log("Customer "+tmp.getId()+" was impatient and has left the queue ");
 
-                        //queuesSizes.put(inQueueCustomer.getQueueId(), queuesSizes.get(inQueueCustomer.getQueueId())-1);
+                        queuesSizes.put(tmp.getQueueId(), queuesSizes.get(tmp.getQueueId())-1);
 
                         inQueueCustomers.remove(tmp);
                         //customersObjectsToHandles.remove(tmp); //tylko jesli go usuwam na amen

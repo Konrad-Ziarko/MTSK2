@@ -49,7 +49,8 @@ public class FederatMenedzer extends AbstractFederat {
                 if (checkQueues) {
                     double avg = 0.0;
                     try {
-                        avg = (double) ((double) (ileKlientow - ileKas) / (double) ileKas);
+                        avg = (double)((double)ileKlientow/(double) ileKas);
+                        //avg = (double) ((double) (ileKlientow - ileKas) / (double) ileKas);
                     } catch (ArithmeticException e) {
 
                     }
