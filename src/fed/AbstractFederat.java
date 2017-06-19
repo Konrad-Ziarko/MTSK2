@@ -162,8 +162,10 @@ public abstract class AbstractFederat {
         try {
             rtiamb.timeAdvanceRequest(newTime);
             while (fedamb.isAdvancing) {
+
                 rtiamb.tick();
             }
+
         } catch (InvalidFederationTime | FederationTimeAlreadyPassed | EnableTimeRegulationPending | TimeAdvanceAlreadyInProgress | FederateNotExecutionMember | EnableTimeConstrainedPending | RestoreInProgress | SaveInProgress | ConcurrentAccessAttempted | RTIinternalError invalidFederationTime) {
             invalidFederationTime.printStackTrace();
         }
